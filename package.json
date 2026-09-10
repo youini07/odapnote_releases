@@ -14,6 +14,7 @@
   "build": {
     "appId": "com.mathacademy.odapnote",
     "productName": "오답노트",
+    "npmRebuild": false,
     "directories": {
       "output": "release/${version}"
     },
