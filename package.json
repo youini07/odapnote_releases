@@ -1,0 +1,65 @@
+{
+  "name": "odapnote",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && tsc -p tsconfig.electron.json",
+    "start": "electron .",
+    "dist": "npm run build && electron-builder",
+    "preview": "vite preview"
+  },
+  "build": {
+    "appId": "com.mathacademy.odapnote",
+    "productName": "오답노트",
+    "directories": {
+      "output": "release/${version}"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "artifactName": "OdapNote-Setup-${version}.${ext}"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "youini07",
+        "repo": "odapnote_releases"
+      }
+    ]
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "electron-updater": "^6.8.9",
+    "pdfkit": "^0.15.1",
+    "pdf-to-img": "^4.2.0",
+    "archiver": "^7.0.1",
+    "sharp": "^0.33.5",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "@types/pdfkit": "^0.13.8",
+    "@types/archiver": "^6.0.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "electron": "^42.3.0",
+    "electron-builder": "^26.8.1",
+    "lucide-react": "^1.17.0",
+    "tailwindcss": "^4.3.0",
+    "@tailwindcss/cli": "^4.3.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "typescript": "~6.0.2",
+    "vite": "^5.4.21"
+  },
+  "productName": "오답노트"
+}

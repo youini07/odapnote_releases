@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-electron/
+release/
+
+# Logs
+*.log
+npm-debug.log*
+
+# User Data & Temp
+temp/
+오답노트학생용/
+문제집/
+*.pdf
+
+# System
+Thumbs.db
