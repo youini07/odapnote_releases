@@ -222,33 +222,29 @@ export function deleteOdapNoteRecord(studentId: string, recordId: string): void 
 
 // ===================== 앱 설정 =====================
 
-/** 배포용 내장 API 키 (여기에 원장님의 API 키를 입력하시면 배포 버전 사용자들이 기본으로 사용하게 됩니다) */
-const EMBEDDED_GEMINI_API_KEY = "AIzaSyAqHgMkF9_F_vrofsNLPfPrrMt2iA-x-mU"; 
-
 /** 앱 설정 조회 */
 export function getAppSettings(): AppSettings {
   const filePath = path.join(getDataDir(), 'settings.json');
   const defaults: AppSettings = {
-    geminiApiKey: EMBEDDED_GEMINI_API_KEY,
+    geminiApiKey: '',
     paperSize: 'A4',
     marginMm: 10,
     questionsPerPage: 4,
     dataPath: getDataDir(),
   };
   
-  // 내장 키가 없고 사용자 로컬 설정에도 없을 경우 822 Link에서 가져오기 시도
-  if (!defaults.geminiApiKey) {
-    defaults.geminiApiKey = getGeminiKeyFrom822Link();
+  const savedSettings = readJson<AppSettings>(filePath, defaults);
+
+  // 저장된 키가 없을 경우 822 Link에서 가져오기 시도 (선택적)
+  if (!savedSettings.geminiApiKey) {
+    savedSettings.geminiApiKey = getGeminiKeyFrom822Link();
   }
   
-  return readJson<AppSettings>(filePath, defaults);
+  return { ...defaults, ...savedSettings };
 }
 
-/** 앱 설정 저장 - geminiApiKey는 822 Link에서만 가져오므로 저장 시 무시 */
+/** 앱 설정 저장 */
 export function saveAppSettings(settings: AppSettings): void {
-  // API 키는 항상 822 Link에서 자동으로 가져오므로 사용자 수정 불가
-  const current = getAppSettings();
-  settings.geminiApiKey = current.geminiApiKey;
   writeJson(path.join(getDataDir(), 'settings.json'), settings);
 }
 

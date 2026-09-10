@@ -1,6 +1,5 @@
 // ================================================================
 // SettingsPanel.tsx - 설정 탭
-// API 키는 822 Link에서 내장 (변경 불가), 출력 설정만 관리
 // ================================================================
 
 import { useState, useEffect } from 'react';
@@ -43,41 +42,39 @@ export default function SettingsPanel() {
         설정
       </h2>
 
-      {/* API 키 상태 (읽기 전용) */}
+      {/* API 키 설정 */}
       <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5">
         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
           <Lock size={14} className="text-yellow-400" />
           Gemini AI API 키
         </h3>
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
-          settings.geminiApiKey 
-            ? 'bg-emerald-500/5 border-emerald-500/20' 
-            : 'bg-red-500/5 border-red-500/20'
-        }`}>
-          {settings.geminiApiKey ? (
-            <>
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-              <div>
-                <div className="text-sm text-emerald-300 font-medium">API 키 연결됨</div>
-                <div className="text-[11px] text-slate-500 font-mono">
-                  {settings.geminiApiKey.slice(0, 8)}••••••••{settings.geminiApiKey.slice(-4)}
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <AlertCircle size={16} className="text-red-400 shrink-0" />
-              <div>
-                <div className="text-sm text-red-300 font-medium">API 키 없음</div>
-                <div className="text-[11px] text-red-400/70">
-                  API 키가 내장되어 있지 않습니다.
-                </div>
-              </div>
-            </>
-          )}
+        
+        <div className="space-y-3">
+          <input
+            type="password"
+            value={settings.geminiApiKey}
+            onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
+            placeholder="AIzaSy..."
+            className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors"
+          />
+          
+          <div className="flex items-center gap-2 px-1">
+            {settings.geminiApiKey ? (
+              <>
+                <CheckCircle2 size={14} className="text-emerald-400" />
+                <span className="text-xs text-emerald-400">API 키가 입력되어 있습니다.</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle size={14} className="text-red-400" />
+                <span className="text-xs text-red-400">API 키를 입력해주세요.</span>
+              </>
+            )}
+          </div>
         </div>
-        <p className="text-[10px] text-slate-600 mt-2">
-          * API 키는 배포 시 앱 내에 내장됩니다. (사용자 수정 불가)
+        
+        <p className="text-[11px] text-slate-500 mt-4">
+          * Google AI Studio에서 발급받은 Gemini API 키를 입력하세요.
         </p>
       </div>
 

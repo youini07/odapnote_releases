@@ -18,6 +18,10 @@
     "directories": {
       "output": "release/${version}"
     },
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
+    },
     "win": {
       "target": ["nsis"]
     },
