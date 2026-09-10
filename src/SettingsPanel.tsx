@@ -70,14 +70,14 @@ export default function SettingsPanel() {
               <div>
                 <div className="text-sm text-red-300 font-medium">API 키 없음</div>
                 <div className="text-[11px] text-red-400/70">
-                  822 Link 또는 Band Admin 앱에 Gemini API 키를 설정해주세요.
+                  API 키가 내장되어 있지 않습니다.
                 </div>
               </div>
             </>
           )}
         </div>
         <p className="text-[10px] text-slate-600 mt-2">
-          * API 키는 822 Link / Band Admin 설정에서 자동으로 가져옵니다. 직접 수정할 수 없습니다.
+          * API 키는 배포 시 앱 내에 내장됩니다. (사용자 수정 불가)
         </p>
       </div>
 

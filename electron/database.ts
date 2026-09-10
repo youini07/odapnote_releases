@@ -222,18 +222,21 @@ export function deleteOdapNoteRecord(studentId: string, recordId: string): void 
 
 // ===================== 앱 설정 =====================
 
+/** 배포용 내장 API 키 (여기에 원장님의 API 키를 입력하시면 배포 버전 사용자들이 기본으로 사용하게 됩니다) */
+const EMBEDDED_GEMINI_API_KEY = "AIzaSyAqHgMkF9_F_vrofsNLPfPrrMt2iA-x-mU"; 
+
 /** 앱 설정 조회 */
 export function getAppSettings(): AppSettings {
   const filePath = path.join(getDataDir(), 'settings.json');
   const defaults: AppSettings = {
-    geminiApiKey: '',
+    geminiApiKey: EMBEDDED_GEMINI_API_KEY,
     paperSize: 'A4',
     marginMm: 10,
     questionsPerPage: 4,
     dataPath: getDataDir(),
   };
   
-  // 822 Link에서 Gemini 키 fallback 시도
+  // 내장 키가 없고 사용자 로컬 설정에도 없을 경우 822 Link에서 가져오기 시도
   if (!defaults.geminiApiKey) {
     defaults.geminiApiKey = getGeminiKeyFrom822Link();
   }
