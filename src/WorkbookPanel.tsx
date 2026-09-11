@@ -4,7 +4,7 @@
 // ================================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, BookOpen, Trash2, Link, Search, FileText, Loader2, AlertCircle, CheckCircle2, Image, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, BookOpen, Trash2, Link, Search, FileText, Loader2, AlertCircle, CheckCircle2, Image, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import type { Workbook, Question } from './types';
 
 export default function WorkbookPanel() {
@@ -175,6 +175,34 @@ export default function WorkbookPanel() {
     await loadWorkbooks();
   };
 
+  // 데이터 리로드 (스캔 알림 없이 갱신만)
+  const handleReloadData = async (workbookId: string) => {
+    const qs = await window.electronAPI.getQuestions(workbookId);
+    setQuestions(qs);
+    const images: Record<string, string> = {};
+    await Promise.all(qs.map(async (q) => {
+      const base64 = await window.electronAPI.readImageAsBase64(q.imagePath);
+      if (base64) images[q.id] = base64;
+    }));
+    setQuestionImages(images);
+    loadWorkbooks();
+  };
+
+  // 수동 이미지 스캔
+  const handleRescan = async (workbookId: string) => {
+    const res = await window.electronAPI.rescanWorkbookImages(workbookId);
+    if (res.success) {
+      if (res.addedCount > 0) {
+        alert(`스캔 완료: ${res.addedCount}개의 새 이미지가 데이터베이스에 추가되었습니다.`);
+        await handleReloadData(workbookId);
+      } else {
+        alert('추가된 새 이미지가 없습니다. 파일명이 올바른지 확인해주세요 (예: 15.png, 0015.png)');
+      }
+    } else {
+      alert(`스캔 실패: ${res.error}`);
+    }
+  };
+
   const studentWorkbooks = workbooks.filter(w => w.type === 'student');
   const teacherWorkbooks = workbooks.filter(w => w.type === 'teacher');
 
@@ -313,6 +341,8 @@ export default function WorkbookPanel() {
                 onPairWith={handlePair}
                 onResumeAnalysis={() => handleResumeAnalysis(wb.id, wb.filePath, wb.type)}
                 onCancelAnalysis={() => handleCancelAnalysis(wb.id)}
+                onRescan={() => handleRescan(wb.id)}
+                onReloadData={() => handleReloadData(wb.id)}
                 jobProgress={analyzingJobs[wb.id]}
               />
             ))}
@@ -347,6 +377,8 @@ export default function WorkbookPanel() {
                 onPairWith={handlePair}
                 onResumeAnalysis={() => handleResumeAnalysis(wb.id, wb.filePath, wb.type)}
                 onCancelAnalysis={() => handleCancelAnalysis(wb.id)}
+                onRescan={() => handleRescan(wb.id)}
+                onReloadData={() => handleReloadData(wb.id)}
                 jobProgress={analyzingJobs[wb.id]}
               />
             ))}
@@ -421,13 +453,42 @@ interface WorkbookCardProps {
   onPairWith: (targetId: string) => void;
   onResumeAnalysis: () => void;
   onCancelAnalysis: () => void;
+  onRescan: () => void;
+  onReloadData: () => void;
   jobProgress?: { message: string, percent: number };
 }
 
 function WorkbookCard({
   workbook, allWorkbooks, isExpanded, questions, questionImages,
-  pairingMode, onToggleExpand, onDelete, onStartPairing, onCancelPairing, onPairWith, onResumeAnalysis, onCancelAnalysis, jobProgress
+  pairingMode, onToggleExpand, onDelete, onStartPairing, onCancelPairing, onPairWith, onResumeAnalysis, onCancelAnalysis, onRescan, onReloadData, jobProgress
 }: WorkbookCardProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // isExpanded가 변경될 때 선택 초기화
+  useEffect(() => {
+    if (!isExpanded) setSelectedIds(new Set());
+  }, [isExpanded]);
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`선택한 ${selectedIds.size}개의 문제를 정말 삭제하시겠습니까?\n(이미지 파일도 함께 영구 삭제됩니다)`)) return;
+
+    const res = await window.electronAPI.deleteQuestions(workbook.id, Array.from(selectedIds));
+    if (res.success) {
+      alert('선택한 문제가 삭제되었습니다.');
+      setSelectedIds(new Set());
+      onReloadData();
+    } else {
+      alert(`삭제 실패: ${res.error}`);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
   const paired = workbook.pairedWorkbookId
     ? allWorkbooks.find(w => w.id === workbook.pairedWorkbookId)
     : null;
@@ -597,9 +658,28 @@ function WorkbookCard({
                     <span className="text-xs text-slate-500">
                       문제 미리보기 (전체 {questions.length}개{missingNumbers.length > 0 && <span className="text-red-400"> / 예상 {expectedTotal}개</span>})
                     </span>
-                    <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
-                      이미지를 클릭하면 그림판에서 수정할 수 있습니다
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {selectedIds.size > 0 && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteSelected(); }}
+                          className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/20 flex items-center gap-1 transition-colors font-semibold"
+                        >
+                          <Trash2 size={10} />
+                          선택 삭제 ({selectedIds.size})
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onRescan(); }}
+                        className="text-[10px] text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-1 rounded hover:bg-blue-500/20 flex items-center gap-1 transition-colors"
+                        title="폴더에 직접 넣은 이미지 스캔"
+                      >
+                        <RefreshCw size={10} />
+                        폴더 수동 스캔
+                      </button>
+                      <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+                        이미지를 클릭하면 그림판에서 수정할 수 있습니다
+                      </span>
+                    </div>
                   </div>
                   {missingNumbers.length > 0 && (
                     <div className="mt-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -619,27 +699,43 @@ function WorkbookCard({
             {questions.map(q => (
               <div 
                 key={q.id} 
-                onClick={() => window.electronAPI.openInPaint(q.imagePath)}
-                className="bg-slate-800/80 rounded-md p-2 border border-slate-700/30 cursor-pointer hover:border-emerald-400 hover:ring-2 hover:ring-emerald-400/20 transition-all group"
-                title="클릭하여 그림판으로 열기"
+                className={`relative bg-slate-800/80 rounded-md p-2 border transition-all group ${
+                  selectedIds.has(q.id) 
+                    ? 'border-red-500/50 ring-1 ring-red-500/20' 
+                    : 'border-slate-700/30 hover:border-emerald-400 hover:ring-2 hover:ring-emerald-400/20'
+                }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold text-red-400">#{q.number}</span>
-                    <span className="text-[9px] text-slate-500">p.{q.page}</span>
-                  </div>
-                </div>
-                {questionImages[q.id] ? (
-                  <img
-                    src={questionImages[q.id]}
-                    alt={`문제 ${q.number}`}
-                    className="w-full h-20 object-contain bg-white/90 rounded group-hover:brightness-95 transition-all"
+                <div className="absolute top-2 right-2 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(q.id)}
+                    onChange={() => toggleSelect(q.id)}
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-red-500/50 cursor-pointer"
                   />
-                ) : (
-                  <div className="w-full h-20 bg-slate-700/50 rounded flex items-center justify-center">
-                    <Image size={16} className="text-slate-600" />
+                </div>
+                <div 
+                  onClick={() => window.electronAPI.openInPaint(q.imagePath)}
+                  className="cursor-pointer h-full flex flex-col"
+                  title="클릭하여 그림판으로 열기"
+                >
+                  <div className="flex items-center justify-between mb-1 pr-6">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-red-400">#{q.number}</span>
+                      <span className="text-[9px] text-slate-500">p.{q.page}</span>
+                    </div>
                   </div>
-                )}
+                  {questionImages[q.id] ? (
+                    <img
+                      src={questionImages[q.id]}
+                      alt={`문제 ${q.number}`}
+                      className="w-full h-20 object-contain bg-white/90 rounded group-hover:brightness-95 transition-all"
+                    />
+                  ) : (
+                    <div className="w-full h-20 bg-slate-700/50 rounded flex items-center justify-center">
+                      <Image size={16} className="text-slate-600" />
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>

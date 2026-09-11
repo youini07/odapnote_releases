@@ -1,0 +1,101 @@
+[
+  {
+    "id": "wb_1789115212780_3bi9sx_q0020",
+    "workbookId": "wb_1789115212780_3bi9sx",
+    "number": "0020",
+    "page": 8,
+    "type": "미분류",
+    "imagePath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\images\\22개정 RPM 공통수학2_3bi9sx\\P008_0020.png",
+    "bbox": {
+      "x": 0.81,
+      "y": 0.601,
+      "width": 0.18999999999999995,
+      "height": 0.061
+    }
+  },
+  {
+    "id": "wb_1789115212780_3bi9sx_q0021",
+    "workbookId": "wb_1789115212780_3bi9sx",
+    "number": "0021",
+    "page": 8,
+    "type": "미분류",
+    "imagePath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\images\\22개정 RPM 공통수학2_3bi9sx\\P008_0021.png",
+    "bbox": {
+      "x": 0.81,
+      "y": 0.783,
+      "width": 0.18999999999999995,
+      "height": 0.061
+    }
+  },
+  {
+    "id": "wb_1789115212780_3bi9sx_q0022",
+    "workbookId": "wb_1789115212780_3bi9sx",
+    "number": "0022",
+    "page": 8,
+    "type": "미분류",
+    "imagePath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\images\\22개정 RPM 공통수학2_3bi9sx\\P008_0022.png",
+    "bbox": {
+      "x": 0.533,
+      "y": 0.264,
+      "width": 0.272,
+      "height": 0.078
+    }
+  },
+  {
+    "id": "wb_1789115212780_3bi9sx_q0023",
+    "workbookId": "wb_1789115212780_3bi9sx",
+    "number": "0023",
+    "page": 8,
+    "type": "미분류",
+    "imagePath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\images\\22개정 RPM 공통수학2_3bi9sx\\P008_0023.png",
+    "bbox": {
+      "x": 0.533,
+      "y": 0.432,
+      "width": 0.272,
+      "height": 0.077
+    }
+  },
+  {
+    "id": "wb_1789115212780_3bi9sx_q0024",
+    "workbookId": "wb_1789115212780_3bi9sx",
+    "number": "0024",
+    "page": 8,
+    "type": "미분류",
+    "imagePath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\images\\22개정 RPM 공통수학2_3bi9sx\\P008_0024.png",
+    "bbox": {
+      "x": 0.533,
+      "y": 0.596,
+      "width": 0.272,
+      "height": 0.06
+    }
+  },
+  {
+    "id": "wb_1789115212780_3bi9sx_q0025",
+    "workbookId": "wb_1789115212780_3bi9sx",
+    "number": "0025",
+    "page": 8,
+    "type": "미분류",
+    "imagePath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\images\\22개정 RPM 공통수학2_3bi9sx\\P008_0025.png",
+    "bbox": {
+      "x": 0.533,
+      "y": 0.741,
+      "width": 0.272,
+      "height": 0.138
+    }
+  },
+  {
+    "id": "q_manual_1789116203365_0hgoef",
+    "number": "0026",
+    "page": 1,
+    "imagePath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\images\\22개정 RPM 공통수학2_3bi9sx\\P009_0026.png",
+    "textContent": "",
+    "workbookId": "wb_1789115212780_3bi9sx",
+    "type": "미분류",
+    "bbox": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    }
+  }
+]

@@ -237,6 +237,16 @@ ipcMain.handle('get-questions', (event, workbookId: string) => {
   return database.getQuestions(workbookId);
 });
 
+/** 수동 추가 이미지 스캔 */
+ipcMain.handle('rescan-workbook-images', (event, workbookId: string) => {
+  return database.rescanQuestionImages(workbookId);
+});
+
+/** 문제 삭제 */
+ipcMain.handle('delete-questions', (event, workbookId: string, questionIds: string[]) => {
+  return database.deleteQuestions(workbookId, questionIds);
+});
+
 // ====== 학생 관리 IPC ======
 
 ipcMain.handle('get-students', () => database.getStudents());

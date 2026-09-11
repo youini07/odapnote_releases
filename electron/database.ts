@@ -140,6 +140,35 @@ export function saveQuestions(workbookId: string, questions: Question[]): void {
   writeJson(path.join(getDataDir(), `questions_${workbookId}.json`), questions);
 }
 
+/** 선택한 문제 삭제 (이미지 파일 포함) */
+export function deleteQuestions(workbookId: string, questionIds: string[]): { success: boolean, error?: string } {
+  try {
+    let questions = getQuestions(workbookId);
+    const toDelete = questions.filter(q => questionIds.includes(q.id));
+    
+    // 이미지 파일 삭제
+    for (const q of toDelete) {
+      if (q.imagePath && fs.existsSync(q.imagePath)) {
+        fs.unlinkSync(q.imagePath);
+      }
+    }
+    
+    questions = questions.filter(q => !questionIds.includes(q.id));
+    saveQuestions(workbookId, questions);
+    
+    const workbooks = getWorkbooks();
+    const wb = workbooks.find(w => w.id === workbookId);
+    if (wb) {
+      wb.totalQuestions = questions.length;
+      saveWorkbook(wb);
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 // 번호 정규화 유틸리티
 function normalizeNumber(num: string): string {
   let cleaned = String(num).replace(/번$/g, '').trim();
@@ -290,4 +319,81 @@ function getGeminiKeyFrom822Link(): string {
 /** 데이터 디렉토리 경로 반환 (외부에서 사용) */
 export function getDataDirectory(): string {
   return getDataDir();
+}
+
+/** 
+ * 수동으로 추가된 누락된 문제 이미지를 폴더에서 스캔하여 데이터베이스에 반영
+ */
+export function rescanQuestionImages(workbookId: string): { success: boolean, addedCount: number, error?: string } {
+  try {
+    const dir = getQuestionsImageDir(workbookId);
+    if (!fs.existsSync(dir)) return { success: false, error: '이미지 디렉토리를 찾을 수 없습니다.', addedCount: 0 };
+    
+    let questions = getQuestions(workbookId);
+    
+    // 이전에 잘못된 스캔으로 인해 추가된 P000_ 형태의 문제 번호 정리 (자동 복구)
+    const originalLength = questions.length;
+    questions = questions.filter(q => !/^P\d+_.+/i.test(q.number));
+    
+    const existingNumbers = new Set(questions.map(q => normalizeNumber(q.number)));
+    
+    const files = fs.readdirSync(dir);
+    let addedCount = 0;
+    
+    for (const file of files) {
+      if (file.toLowerCase().endsWith('.png')) {
+        let basename = path.basename(file, '.png');
+        
+        // P008_0018.png 와 같이 페이지 접두사가 붙은 경우 제거하여 순수 문제 번호만 추출
+        const match = basename.match(/^P\d+_(.+)$/i);
+        if (match) {
+          basename = match[1];
+        }
+        
+        const num = normalizeNumber(basename);
+        
+        if (!existingNumbers.has(num)) {
+          // get the workbook type
+          const workbooks = getWorkbooks();
+          const wb = workbooks.find(w => w.id === workbookId);
+          const wbType = wb ? wb.type : 'student';
+
+          questions.push({
+            id: `q_manual_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+            number: num,
+            page: 1,
+            imagePath: path.join(dir, file),
+            textContent: '',
+            workbookId: workbookId,
+            type: '미분류',
+            bbox: { x: 0, y: 0, width: 0, height: 0 }
+          });
+          existingNumbers.add(num);
+          addedCount++;
+        }
+      }
+    }
+    
+    if (addedCount > 0 || questions.length !== originalLength) {
+      questions.sort((a, b) => {
+         const numA = parseInt(a.number, 10);
+         const numB = parseInt(b.number, 10);
+         if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+         return a.number.localeCompare(b.number);
+      });
+      saveQuestions(workbookId, questions);
+      
+      const workbooks = getWorkbooks();
+      const wb = workbooks.find(w => w.id === workbookId);
+      if (wb) {
+        wb.totalQuestions = questions.length;
+        saveWorkbook(wb);
+      }
+    }
+    
+    // 만약 에러 복구만 일어났고 추가된 건 없다면, 복구된 사실을 알리기 위해 임의로 addedCount를 반환하지 않고 success 처리
+    return { success: true, addedCount };
+  } catch (error: any) {
+    return { success: false, error: error.message, addedCount: 0 };
+  }
 }
