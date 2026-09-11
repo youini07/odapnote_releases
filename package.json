@@ -1,7 +1,7 @@
 {
   "name": "odapnote",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -22,13 +22,9 @@
       {
         "provider": "github",
         "owner": "youini07",
-        "repo": "odapnote_releases",
-        "releaseType": "release"
+        "repo": "odapnote_releases"
       }
     ],
-    "releaseInfo": {
-      "releaseNotesFile": "release-notes.md"
-    },
     "win": {
       "target": [
         "nsis"
