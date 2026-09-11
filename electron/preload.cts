@@ -10,9 +10,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** PDF 파일 선택 다이얼로그 */
   selectPdfFile: () => ipcRenderer.invoke('select-pdf-file'),
   
-  /** PDF 분석 시작 */
-  analyzePdf: (filePath: string, type: 'student' | 'teacher') => 
-    ipcRenderer.invoke('analyze-pdf', filePath, type),
+  /** PDF 분석 시작 및 재개 */
+  analyzePdf: (filePath: string, type: 'student' | 'teacher', startNumber?: string, analyzeStartPage?: number, analyzeEndPage?: number, workbookId?: string) => 
+    ipcRenderer.invoke('analyze-pdf', filePath, type, startNumber, analyzeStartPage, analyzeEndPage, workbookId),
+    
+  /** PDF 분석 중지 */
+  cancelAnalyzePdf: (workbookId: string) => ipcRenderer.invoke('cancel-analyze-pdf', workbookId),
   
   /** 문제집 목록 조회 */
   getWorkbooks: () => ipcRenderer.invoke('get-workbooks'),
@@ -75,7 +78,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ====== 이벤트 리스너 ======
   /** PDF 분석 진행 상황 */
-  onAnalysisProgress: (callback: (data: { message: string; percent: number }) => void) => {
+  onAnalysisProgress: (callback: (data: { workbookId?: string; message: string; percent: number }) => void) => {
     const listener = (_event: any, value: any) => callback(value);
     ipcRenderer.on('analysis-progress', listener);
     return () => ipcRenderer.removeListener('analysis-progress', listener);

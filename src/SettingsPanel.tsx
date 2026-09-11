@@ -3,7 +3,7 @@
 // ================================================================
 
 import { useState, useEffect } from 'react';
-import { Settings, HardDrive, FileText, Printer, RefreshCw, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
+import { Settings, HardDrive, FileText, Printer, RefreshCw, CheckCircle2, AlertCircle, Lock, Folder } from 'lucide-react';
 import type { AppSettings } from './types';
 
 export default function SettingsPanel() {
@@ -22,13 +22,27 @@ export default function SettingsPanel() {
   };
 
   const handleCheckUpdate = async () => {
+    // checkForUpdates 호출 시 autoUpdater가 'update-available' 이벤트를 발생시키고,
+    // 그 이벤트를 UpdaterModal이 받아서 업데이트 팝업(다운로드/나중에)을 자동으로 표시함.
+    // 여기서는 최신 버전일 때만 텍스트 메시지로 안내.
+    setSaveMsg('업데이트 확인 중...');
     const info = await window.electronAPI.checkForUpdates();
-    if (info) {
-      setSaveMsg(`새 버전 v${info.version}이 있습니다.`);
-    } else {
+    if (!info) {
+      // 새 버전이 없는 경우에만 텍스트 메시지 표시
       setSaveMsg('현재 최신 버전입니다.');
+      setTimeout(() => setSaveMsg(null), 5000);
+    } else {
+      // 새 버전이 있으면 UpdaterModal이 이벤트로 팝업을 표시하므로
+      // 여기서는 메시지만 간단히 정리
+      setSaveMsg(null);
     }
-    setTimeout(() => setSaveMsg(null), 5000);
+  };
+
+  const handleSelectStorageDir = async () => {
+    const newDir = await window.electronAPI.selectSaveDir();
+    if (newDir && settings) {
+      setSettings({ ...settings, customStorageDir: newDir });
+    }
   };
 
   if (!settings) {
@@ -144,6 +158,45 @@ export default function SettingsPanel() {
         </button>
       </div>
 
+      {/* 데이터 저장 경로 */}
+      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5">
+        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <Folder size={14} className="text-amber-400" />
+          데이터 저장 경로
+        </h3>
+        
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 text-sm font-mono truncate">
+              {settings.customStorageDir || settings.dataPath}
+            </div>
+            <button
+              onClick={handleSelectStorageDir}
+              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+            >
+              폴더 변경
+            </button>
+          </div>
+          
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mt-3">
+            <div className="flex gap-2">
+              <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-200/80 leading-relaxed">
+                <strong>주의:</strong> 경로를 변경하면 프로그램은 변경된 새 경로에서 데이터를 찾습니다. 
+                기존 작업물을 유지하려면 윈도우 탐색기에서 예전 데이터를 새 폴더로 직접 옮겨주세요.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSave}
+          className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          설정 저장
+        </button>
+      </div>
+
       {/* 데이터 & 앱 정보 */}
       <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5">
         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
@@ -156,7 +209,7 @@ export default function SettingsPanel() {
             <span className="text-white font-mono">v1.0.0</span>
           </div>
           <div className="flex justify-between text-slate-400">
-            <span>데이터 경로</span>
+            <span>시스템 경로</span>
             <span className="text-slate-500 text-xs font-mono truncate max-w-[300px]">{settings.dataPath}</span>
           </div>
         </div>

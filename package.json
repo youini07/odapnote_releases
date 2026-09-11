@@ -1,7 +1,7 @@
 {
   "name": "odapnote",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -40,18 +40,21 @@
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
-    "electron-updater": "^6.8.9",
-    "pdfkit": "^0.15.1",
-    "pdf-to-img": "^4.2.0",
     "archiver": "^7.0.1",
-    "sharp": "^0.33.5",
+    "electron-updater": "^6.8.9",
+    "pdf-to-img": "^4.2.0",
+    "pdfjs-dist": "^4.2.67",
+    "pdfkit": "^0.15.1",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.3.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/archiver": "^6.0.3",
     "@types/node": "^24.12.3",
     "@types/pdfkit": "^0.13.8",
-    "@types/archiver": "^6.0.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
@@ -59,8 +62,6 @@
     "electron-builder": "^26.8.1",
     "lucide-react": "^1.17.0",
     "tailwindcss": "^4.3.0",
-    "@tailwindcss/cli": "^4.3.0",
-    "@tailwindcss/vite": "^4.3.0",
     "typescript": "~6.0.2",
     "vite": "^5.4.21"
   },

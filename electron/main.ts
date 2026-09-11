@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
 import * as database from './database.js';
-import { createPdfIndex, extractAndCropQuestions } from './pdfAnalyzer.js';
+import { createPdfIndex, extractAndCropQuestions, activeAnalyses } from './pdfAnalyzer.js';
 import { generateOdapNoteFiles } from './exporter.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,8 +45,36 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(async () => {
-  createWindow();
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(async () => {
+    createWindow();
+
+    // 앱 재시작 시, 이전 실행에서 강제 종료되어 'analyzing' 상태로 남아있는 문제집을 'paused'로 일괄 변경
+  try {
+    const workbooks = database.getWorkbooks();
+    let hasStalled = false;
+    workbooks.forEach(wb => {
+      if (wb.status === 'analyzing') {
+        wb.status = 'paused';
+        database.saveWorkbook(wb);
+        hasStalled = true;
+      }
+    });
+    if (hasStalled) console.log('[Main] 비정상 종료된 분석 작업을 일시 중지 상태로 복구했습니다.');
+  } catch (e) {
+    console.error('[Main] 작업 복구 실패:', e);
+  }
 
   // ====== 자동 업데이트 설정 ======
   autoUpdater.autoDownload = false;
@@ -71,6 +99,7 @@ app.whenReady().then(async () => {
     try { await autoUpdater.checkForUpdates(); } catch { /* 무시 */ }
   }
 });
+}
 
 app.on('window-all-closed', () => {
   app.quit();
@@ -92,55 +121,98 @@ ipcMain.handle('select-pdf-file', async () => {
   return null;
 });
 
-/** PDF 분석 시작 */
-ipcMain.handle('analyze-pdf', async (event, filePath: string, type: 'student' | 'teacher') => {
+/** PDF 분석 시작 및 재개 */
+ipcMain.handle('analyze-pdf', async (event, filePath: string, type: 'student' | 'teacher', startNumber?: string, analyzeStartPage?: number, analyzeEndPage?: number, existingWorkbookId?: string) => {
   try {
-    // 파일명에서 문제집 이름 추출
-    const fileName = path.basename(filePath, '.pdf');
-    // "(학생용)", "(교사용)" 등의 태그 제거하여 깔끔한 이름 생성
-    const cleanName = fileName
-      .replace(/\s*\(학생용\)\s*/g, '')
-      .replace(/\s*\(교사용\)\s*/g, '')
-      .replace(/\s*\(답안\)\s*/g, '')
-      .trim();
-    
-    const workbookId = `wb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    
-    // 진행 상황 콜백
-    const onProgress = (message: string, percent: number) => {
-      mainWindow?.webContents.send('analysis-progress', { message, percent });
-    };
+    let workbook;
+    let wId = existingWorkbookId;
 
-    // 문제집 정보 임시 저장 (알수없는문제집 방지)
-    const workbook = {
-      id: workbookId,
-      name: cleanName,
-      fileName: path.basename(filePath),
-      filePath: filePath,
-      type,
-      analyzedAt: new Date().toISOString(),
-      totalQuestions: 0,
-    };
+    if (!wId) {
+      // 새 분석 시작
+      const fileName = path.basename(filePath, '.pdf');
+      const cleanName = fileName
+        .replace(/\s*\(학생용\)\s*/g, '')
+        .replace(/\s*\(교사용\)\s*/g, '')
+        .replace(/\s*\(답안\)\s*/g, '')
+        .trim();
+      
+      wId = `wb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      workbook = {
+        id: wId,
+        name: cleanName,
+        fileName: path.basename(filePath),
+        filePath: filePath,
+        type,
+        analyzedAt: new Date().toISOString(),
+        totalQuestions: 0,
+        status: 'analyzing' as const,
+      };
+    } else {
+      // 이어서 분석
+      const workbooks = database.getWorkbooks();
+      workbook = workbooks.find(w => w.id === wId);
+      if (!workbook) throw new Error('이어서 분석할 문제집을 찾을 수 없습니다.');
+      workbook.status = 'analyzing' as const;
+    }
+    
     database.saveWorkbook(workbook);
 
+    const onProgress = (msg: string, percent: number) => {
+      // 진행 상황을 프론트엔드로 전달 (창이 닫히거나 새로고침된 경우 예외 방지)
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('analysis-progress', { workbookId: wId, message: msg, percent });
+      }
+    };
+
     let questions;
+    activeAnalyses[wId] = { abort: false, workbookId: wId };
+    
     try {
-      // V2: PDF 전체를 순차적으로 페이지별 이미지화 및 문제 영역 크롭 (사전 처리)
-      questions = await createPdfIndex(filePath, workbookId, type, onProgress);
+      questions = await createPdfIndex(workbook.filePath, wId, workbook.type, onProgress, startNumber, analyzeStartPage, analyzeEndPage, wId);
     } catch (e) {
-      database.deleteWorkbook(workbookId);
+      if (!existingWorkbookId) database.deleteWorkbook(wId);
+      delete activeAnalyses[wId];
       throw e;
     }
 
-    // 분석 완료 후 문제 개수 업데이트
-    workbook.totalQuestions = questions.length;
-    database.saveWorkbook(workbook);
+    delete activeAnalyses[wId];
 
-    return { success: true, workbook, questionCount: questions.length };
+    // 취소 요청에 의해 종료되었는지 확인 (pdfAnalyzer 내부에서 처리됨)
+    // 분석이 정상적으로 끝난 경우 completed, 취소된 경우는 paused
+    const workbooksAfter = database.getWorkbooks();
+    const updatedWorkbook = workbooksAfter.find(w => w.id === wId);
+    
+    if (updatedWorkbook) {
+      // 만약 cancel-analyze-pdf 가 호출되어 이미 paused 로 변경되었다면 덮어쓰지 않음
+      if (updatedWorkbook.status !== 'paused') {
+        updatedWorkbook.status = 'completed';
+      }
+      updatedWorkbook.totalQuestions = questions.length;
+      database.saveWorkbook(updatedWorkbook);
+      return { success: true, workbook: updatedWorkbook, questionCount: questions.length, status: updatedWorkbook.status };
+    }
+    
+    return { success: true, workbook, questionCount: questions.length, status: 'completed' };
   } catch (error: any) {
     console.error('[Main] PDF 분석 실패:', error);
     return { success: false, error: error.message };
   }
+});
+
+/** PDF 분석 중지 */
+ipcMain.handle('cancel-analyze-pdf', (event, workbookId: string) => {
+  if (activeAnalyses[workbookId]) {
+    activeAnalyses[workbookId].abort = true;
+    
+    // 상태를 미리 paused로 변경
+    const workbooks = database.getWorkbooks();
+    const workbook = workbooks.find(w => w.id === workbookId);
+    if (workbook) {
+      workbook.status = 'paused';
+      database.saveWorkbook(workbook);
+    }
+  }
+  return true;
 });
 
 /** 문제집 목록 조회 */

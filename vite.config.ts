@@ -11,6 +11,9 @@ export default defineConfig({
   server: {
     port: 5177,
     strictPort: true,
+    watch: {
+      ignored: ['**/data/**', '**/문제집이미지/**', '**/*.json']
+    }
   },
   build: {
     minify: 'esbuild'

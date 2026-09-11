@@ -9,9 +9,12 @@ import type { Workbook, Question } from './types';
 
 export default function WorkbookPanel() {
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisProgress, setAnalysisProgress] = useState({ message: '', percent: 0 });
+  const [analyzingJobs, setAnalyzingJobs] = useState<Record<string, { message: string, percent: number }>>({});
   const [selectedType, setSelectedType] = useState<'student' | 'teacher'>('student');
+  const [startNumber, setStartNumber] = useState('');
+  const [analyzeStartPage, setAnalyzeStartPage] = useState('');
+  const [analyzeEndPage, setAnalyzeEndPage] = useState('');
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [expandedWorkbook, setExpandedWorkbook] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionImages, setQuestionImages] = useState<Record<string, string>>({});
@@ -30,28 +33,96 @@ export default function WorkbookPanel() {
 
   useEffect(() => {
     loadWorkbooks();
-    // 분석 진행 상황 이벤트 구독
+    // 분석 진행 상황 이벤트 구독 (개별 작업 처리)
     const cleanup = window.electronAPI.onAnalysisProgress((data) => {
-      setAnalysisProgress(data);
+      if (data.workbookId) {
+        setAnalyzingJobs(prev => ({
+          ...prev,
+          [data.workbookId!]: { message: data.message, percent: data.percent }
+        }));
+        
+        // 새로 추가된 문제집이 아직 목록에 없으면 로드
+        setWorkbooks(prev => {
+          if (!prev.find(w => w.id === data.workbookId)) {
+            loadWorkbooks();
+          }
+          return prev;
+        });
+      }
     });
     return cleanup;
   }, [loadWorkbooks]);
 
-  // PDF 파일 선택 및 분석
-  const handleAnalyzePdf = async () => {
+  // PDF 파일 첨부
+  const handleSelectFile = async () => {
     setErrorMsg(null);
     const filePath = await window.electronAPI.selectPdfFile();
-    if (!filePath) return;
+    if (filePath) {
+      setSelectedFile(filePath);
+    }
+  };
 
-    setIsAnalyzing(true);
-    setAnalysisProgress({ message: '시작 중...', percent: 0 });
+  // 분석 시작 (백그라운드 실행)
+  const handleAnalyzePdf = async () => {
+    if (!selectedFile) return;
+    setErrorMsg(null);
+    const fileToAnalyze = selectedFile;
+    // 다음 파일을 바로 추가할 수 있도록 즉시 비움
+    setSelectedFile(null);
 
-    const result = await window.electronAPI.analyzePdf(filePath, selectedType);
+    try {
+      const startP = analyzeStartPage.trim() ? parseInt(analyzeStartPage.trim(), 10) : undefined;
+      const endP = analyzeEndPage.trim() ? parseInt(analyzeEndPage.trim(), 10) : undefined;
+
+      const result = await window.electronAPI.analyzePdf(fileToAnalyze, selectedType, startNumber.trim() || undefined, startP, endP);
+      
+      if (result.success) {
+        await loadWorkbooks();
+        setAnalyzingJobs(prev => {
+          const next = { ...prev };
+          if (result.workbook?.id) delete next[result.workbook.id];
+          return next;
+        });
+      } else {
+        setErrorMsg(result.error || '분석에 실패했습니다.');
+        // 에러 발생 시, 만약 임시로 생성된 카드가 있다면 제거를 위해 로드
+        await loadWorkbooks();
+      }
+    } catch (err: any) {
+      console.error('Unhandled error during analyzePdf:', err);
+      setErrorMsg(`분석 중 시스템 오류가 발생했습니다: ${err.message}`);
+      await loadWorkbooks();
+    }
+  };
+
+  // 분석 중지 (개별 작업)
+  const handleCancelAnalysis = async (workbookId: string) => {
+    await window.electronAPI.cancelAnalyzePdf(workbookId);
+    setAnalyzingJobs(prev => ({
+      ...prev,
+      [workbookId]: { ...prev[workbookId], message: '중지 요청 중...' }
+    }));
+  };
+
+  // 이어서 분석 (재개)
+  const handleResumeAnalysis = async (workbookId: string, filePath: string, type: 'student' | 'teacher') => {
+    setErrorMsg(null);
     
-    setIsAnalyzing(false);
+    // UI 즉각 반영을 위해 빈 상태 생성
+    setAnalyzingJobs(prev => ({
+      ...prev,
+      [workbookId]: { message: '준비 중...', percent: 0 }
+    }));
+
+    const result = await window.electronAPI.analyzePdf(filePath, type, undefined, undefined, undefined, workbookId);
+    
     if (result.success) {
       await loadWorkbooks();
-      setAnalysisProgress({ message: `완료! ${result.questionCount}개 문제 인식`, percent: 100 });
+      setAnalyzingJobs(prev => {
+        const next = { ...prev };
+        delete next[workbookId];
+        return next;
+      });
     } else {
       setErrorMsg(result.error || '분석에 실패했습니다.');
     }
@@ -144,44 +215,69 @@ export default function WorkbookPanel() {
             </div>
           </div>
 
-          {/* 분석 시작 버튼 */}
-          <button
-            onClick={handleAnalyzePdf}
-            disabled={isAnalyzing}
-            className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                분석 중...
-              </>
-            ) : (
-              <>
-                <Search size={16} />
-                PDF 선택 & 분석 시작
-              </>
-            )}
-          </button>
-        </div>
+          {/* 시작 문제 번호 (선택) */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1.5 font-medium">시작 문제 (선택, 예: 0001, A01)</label>
+            <input
+              type="text"
+              value={startNumber}
+              onChange={(e) => setStartNumber(e.target.value)}
+              placeholder="힌트 제공"
+              className="px-3 py-2 text-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-lg placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 w-44"
+            />
+          </div>
 
-        {/* 분석 진행 바 */}
-        {isAnalyzing && (
-          <div className="mt-4 bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-            <div className="flex justify-between text-xs text-slate-400 mb-2">
-              <span className="flex items-center gap-2">
-                <Loader2 size={12} className="animate-spin text-emerald-400" />
-                {analysisProgress.message}
-              </span>
-              <span className="text-emerald-400 font-bold">{Math.round(analysisProgress.percent)}%</span>
-            </div>
-            <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-600 to-teal-500 transition-all duration-500"
-                style={{ width: `${analysisProgress.percent}%` }}
-              />
+          {/* 분석 페이지 범위 (선택) */}
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5 font-medium">분석 범위 (페이지)</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min="1"
+                  value={analyzeStartPage}
+                  onChange={(e) => setAnalyzeStartPage(e.target.value)}
+                  placeholder="시작"
+                  className="px-3 py-2 text-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-lg placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 w-20 text-center"
+                />
+                <span className="text-slate-500">~</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={analyzeEndPage}
+                  onChange={(e) => setAnalyzeEndPage(e.target.value)}
+                  placeholder="끝"
+                  className="px-3 py-2 text-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-lg placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 w-20 text-center"
+                />
+              </div>
             </div>
           </div>
-        )}
+
+          <div className="flex gap-2 items-end">
+            {/* 파일 첨부 버튼 */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-slate-400 font-medium">문제집 파일</label>
+              <button
+                onClick={handleSelectFile}
+                className="px-4 py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 max-w-[200px]"
+                title={selectedFile || 'PDF 파일 선택'}
+              >
+                <Upload size={16} className="text-blue-400" />
+                <span className="truncate">{selectedFile ? selectedFile.split('\\').pop() : 'PDF 첨부'}</span>
+              </button>
+            </div>
+
+            {/* 분석 시작 버튼 (새 작업 등록) */}
+            <button
+              onClick={handleAnalyzePdf}
+              disabled={!selectedFile}
+              className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <Search size={16} />
+              분석 시작
+            </button>
+          </div>
+        </div>
 
         {/* 에러 메시지 */}
         {errorMsg && (
@@ -215,6 +311,9 @@ export default function WorkbookPanel() {
                 onStartPairing={() => setPairingMode(wb.id)}
                 onCancelPairing={() => setPairingMode(null)}
                 onPairWith={handlePair}
+                onResumeAnalysis={() => handleResumeAnalysis(wb.id, wb.filePath, wb.type)}
+                onCancelAnalysis={() => handleCancelAnalysis(wb.id)}
+                jobProgress={analyzingJobs[wb.id]}
               />
             ))}
             {studentWorkbooks.length === 0 && (
@@ -246,6 +345,9 @@ export default function WorkbookPanel() {
                 onStartPairing={() => setPairingMode(wb.id)}
                 onCancelPairing={() => setPairingMode(null)}
                 onPairWith={handlePair}
+                onResumeAnalysis={() => handleResumeAnalysis(wb.id, wb.filePath, wb.type)}
+                onCancelAnalysis={() => handleCancelAnalysis(wb.id)}
+                jobProgress={analyzingJobs[wb.id]}
               />
             ))}
             {teacherWorkbooks.length === 0 && (
@@ -317,11 +419,14 @@ interface WorkbookCardProps {
   onStartPairing: () => void;
   onCancelPairing: () => void;
   onPairWith: (targetId: string) => void;
+  onResumeAnalysis: () => void;
+  onCancelAnalysis: () => void;
+  jobProgress?: { message: string, percent: number };
 }
 
 function WorkbookCard({
   workbook, allWorkbooks, isExpanded, questions, questionImages,
-  pairingMode, onToggleExpand, onDelete, onStartPairing, onCancelPairing, onPairWith,
+  pairingMode, onToggleExpand, onDelete, onStartPairing, onCancelPairing, onPairWith, onResumeAnalysis, onCancelAnalysis, jobProgress
 }: WorkbookCardProps) {
   const paired = workbook.pairedWorkbookId
     ? allWorkbooks.find(w => w.id === workbook.pairedWorkbookId)
@@ -350,6 +455,17 @@ function WorkbookCard({
             <span className={`text-[10px] px-1.5 py-0.5 rounded bg-${typeColor}-500/15 text-${typeColor}-400 font-medium`}>
               {workbook.type === 'student' ? '학생용' : '교사용'}
             </span>
+            {workbook.status === 'paused' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-400 font-medium border border-yellow-500/20">
+                {workbook.lastAnalyzedPage ? `일시 중지됨 (${workbook.lastAnalyzedPage}p 완료)` : '일시 중지됨'}
+              </span>
+            )}
+            {workbook.status === 'analyzing' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium border border-emerald-500/20 flex items-center gap-1">
+                <Loader2 size={10} className="animate-spin" />
+                {workbook.lastAnalyzedPage ? `분석 중 (${workbook.lastAnalyzedPage}p)` : '분석 준비 중...'}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
             <span>{workbook.totalQuestions}문제</span>
@@ -386,6 +502,22 @@ function WorkbookCard({
               매칭 취소
             </button>
           )}
+          {workbook.status !== 'completed' && !pairingMode && workbook.status !== 'analyzing' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onResumeAnalysis(); }}
+              className="px-2 py-1 text-[11px] text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded border border-emerald-500/30 transition-colors"
+            >
+              이어서 분석
+            </button>
+          )}
+          {workbook.status === 'analyzing' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onCancelAnalysis(); }}
+              className="px-2 py-1 text-[11px] text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded border border-red-500/30 transition-colors"
+            >
+              분석 정지
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
@@ -396,6 +528,25 @@ function WorkbookCard({
           {isExpanded ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
         </div>
       </div>
+
+      {/* 진행 상황 바 (카드 내부) */}
+      {workbook.status === 'analyzing' && jobProgress && (
+        <div className="px-4 pb-3">
+          <div className="flex justify-between text-[10px] text-slate-400 mb-1.5">
+            <span className="flex items-center gap-1">
+              <Loader2 size={10} className="animate-spin text-emerald-400" />
+              {jobProgress.message}
+            </span>
+            <span className="text-emerald-400 font-medium">{Math.round(jobProgress.percent)}%</span>
+          </div>
+          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-600 to-teal-500 transition-all duration-500"
+              style={{ width: `${jobProgress.percent}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 매칭 안내 */}
       {isPairingTarget && (
@@ -409,12 +560,61 @@ function WorkbookCard({
       {/* 확장 영역: 문제 미리보기 */}
       {isExpanded && (
         <div className="px-4 pb-4 border-t border-slate-800/50">
-          <p className="text-xs text-slate-500 my-3 flex justify-between items-center">
-            <span>문제 미리보기 (전체 {questions.length}개)</span>
-            <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
-              이미지를 클릭하면 그림판에서 수정할 수 있습니다
-            </span>
-          </p>
+          {(() => {
+            // 연속된 문제 번호에서 누락된 번호 계산
+            const nums = questions.map(q => {
+              const match = q.number.match(/^([a-zA-Z가-힣\s\-]*?)(\d+)$/);
+              return match ? { prefix: match[1], num: parseInt(match[2], 10), padLen: match[2].length, original: q.number } : null;
+            }).filter(Boolean) as { prefix: string; num: number; padLen: number; original: string }[];
+
+            // prefix별 그룹핑
+            const groups: Record<string, typeof nums> = {};
+            for (const n of nums) {
+              if (!groups[n.prefix]) groups[n.prefix] = [];
+              groups[n.prefix].push(n);
+            }
+
+            const missingNumbers: string[] = [];
+            for (const [prefix, list] of Object.entries(groups)) {
+              list.sort((a, b) => a.num - b.num);
+              if (list.length < 2) continue;
+              const minNum = list[0].num;
+              const maxNum = list[list.length - 1].num;
+              const existingNums = new Set(list.map(l => l.num));
+              for (let n = minNum; n <= maxNum; n++) {
+                if (!existingNums.has(n)) {
+                  missingNumbers.push(prefix + String(n).padStart(list[0].padLen, '0'));
+                }
+              }
+            }
+
+            const expectedTotal = questions.length + missingNumbers.length;
+
+            return (
+              <>
+                <div className="my-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500">
+                      문제 미리보기 (전체 {questions.length}개{missingNumbers.length > 0 && <span className="text-red-400"> / 예상 {expectedTotal}개</span>})
+                    </span>
+                    <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+                      이미지를 클릭하면 그림판에서 수정할 수 있습니다
+                    </span>
+                  </div>
+                  {missingNumbers.length > 0 && (
+                    <div className="mt-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+                      <span className="text-[11px] text-red-400 font-semibold">
+                        ⚠ 누락 {missingNumbers.length}개:
+                      </span>
+                      <span className="text-[10px] text-red-300 ml-1.5">
+                        {missingNumbers.join(', ')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </>
+            );
+          })()}
           <div className="grid grid-cols-4 gap-2">
             {questions.map(q => (
               <div 

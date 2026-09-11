@@ -6,12 +6,14 @@
 export interface ElectronAPI {
   // 문제집 관리
   selectPdfFile: () => Promise<string | null>;
-  analyzePdf: (filePath: string, type: 'student' | 'teacher') => Promise<{
+  analyzePdf: (filePath: string, type: 'student' | 'teacher', startNumber?: string, analyzeStartPage?: number, analyzeEndPage?: number, workbookId?: string) => Promise<{
     success: boolean;
     workbook?: Workbook;
     questionCount?: number;
     error?: string;
+    status?: string;
   }>;
+  cancelAnalyzePdf: (workbookId: string) => Promise<boolean>;
   getWorkbooks: () => Promise<Workbook[]>;
   deleteWorkbook: (workbookId: string) => Promise<boolean>;
   pairWorkbooks: (studentId: string, teacherId: string) => Promise<boolean>;
@@ -52,7 +54,7 @@ export interface ElectronAPI {
   onUpdaterEvent: (channel: string, callback: (data: any) => void) => () => void;
 
   // 이벤트 리스너
-  onAnalysisProgress: (callback: (data: { message: string; percent: number }) => void) => () => void;
+  onAnalysisProgress: (callback: (data: { workbookId?: string; message: string; percent: number }) => void) => () => void;
 
   // 유틸리티
   readImageAsBase64: (imagePath: string) => Promise<string | null>;
@@ -77,6 +79,8 @@ export interface Workbook {
   pairedWorkbookId?: string;
   analyzedAt: string;
   totalQuestions: number;
+  status?: 'analyzing' | 'paused' | 'completed' | 'error';
+  lastAnalyzedPage?: number;
 }
 
 export interface Question {
@@ -117,4 +121,5 @@ export interface AppSettings {
   marginMm: number;
   questionsPerPage: number;
   dataPath: string;
+  customStorageDir?: string;
 }

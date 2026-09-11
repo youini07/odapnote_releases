@@ -9,11 +9,28 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Workbook, Question, Student, OdapNoteRecord, AppSettings } from './types.js';
 
-/** 데이터 저장 디렉토리 (userData/odapnote_data) */
-function getDataDir(): string {
+/** 시스템 기본 데이터 저장 디렉토리 (settings.json 등 유지) */
+function getSystemDataDir(): string {
   const dir = path.join(app.getPath('userData'), 'odapnote_data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+/** 실제 데이터가 저장되는 디렉토리 (커스텀 경로가 있으면 우선 사용) */
+function getDataDir(): string {
+  const systemDir = getSystemDataDir();
+  const settingsPath = path.join(systemDir, 'settings.json');
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      if (settings.customStorageDir && fs.existsSync(settings.customStorageDir)) {
+        return settings.customStorageDir;
+      }
+    }
+  } catch (e) {
+    console.error('[DB] 설정 파일 읽기 에러:', e);
+  }
+  return systemDir;
 }
 
 /** 문제 이미지 저장 디렉토리 */
@@ -222,9 +239,8 @@ export function deleteOdapNoteRecord(studentId: string, recordId: string): void 
 
 // ===================== 앱 설정 =====================
 
-/** 앱 설정 조회 */
 export function getAppSettings(): AppSettings {
-  const filePath = path.join(getDataDir(), 'settings.json');
+  const filePath = path.join(getSystemDataDir(), 'settings.json');
   const defaults: AppSettings = {
     geminiApiKey: '',
     paperSize: 'A4',
@@ -245,7 +261,7 @@ export function getAppSettings(): AppSettings {
 
 /** 앱 설정 저장 */
 export function saveAppSettings(settings: AppSettings): void {
-  writeJson(path.join(getDataDir(), 'settings.json'), settings);
+  writeJson(path.join(getSystemDataDir(), 'settings.json'), settings);
 }
 
 /**

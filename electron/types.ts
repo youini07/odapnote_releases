@@ -12,6 +12,8 @@ export interface Workbook {
   pairedWorkbookId?: string;     // 매칭된 반대 타입 문제집 ID
   analyzedAt: string;     // 분석 완료 시각 (ISO 문자열)
   totalQuestions: number;  // 총 문제 수
+  status?: 'analyzing' | 'paused' | 'completed' | 'error'; // 분석 진행 상태
+  lastAnalyzedPage?: number; // 마지막으로 분석된 페이지 번호
 }
 
 /** 개별 문제 정보 */
@@ -88,6 +90,7 @@ export interface AppSettings {
   marginMm: number;       // 여백 (mm)
   questionsPerPage: number; // 페이지당 문제 수 (기본: 4)
   dataPath: string;        // 데이터 저장 경로
+  customStorageDir?: string; // 사용자 지정 저장 경로
 }
 
 /** 내보내기 옵션 */
