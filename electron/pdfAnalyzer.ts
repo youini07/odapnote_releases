@@ -7,6 +7,10 @@
 // 3. 문제 번호 연속성 검사 → 누락 구간 강화 프롬프트 재분석
 // ================================================================
 
+import { Path2D } from 'path2d';
+if (typeof global !== 'undefined' && !(global as any).Path2D) {
+  (global as any).Path2D = Path2D;
+}
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
