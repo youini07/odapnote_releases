@@ -8,10 +8,12 @@ import type { AppSettings } from './types';
 
 export default function SettingsPanel() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [appVersion, setAppVersion] = useState<string>('로딩 중...');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
   useEffect(() => {
     window.electronAPI.getAppSettings().then(setSettings);
+    window.electronAPI.getAppVersion().then(v => setAppVersion(`v${v}`));
   }, []);
 
   const handleSave = async () => {
@@ -22,19 +24,21 @@ export default function SettingsPanel() {
   };
 
   const handleCheckUpdate = async () => {
-    // checkForUpdates 호출 시 autoUpdater가 'update-available' 이벤트를 발생시키고,
-    // 그 이벤트를 UpdaterModal이 받아서 업데이트 팝업(다운로드/나중에)을 자동으로 표시함.
-    // 여기서는 최신 버전일 때만 텍스트 메시지로 안내.
     setSaveMsg('업데이트 확인 중...');
-    const info = await window.electronAPI.checkForUpdates();
-    if (!info) {
-      // 새 버전이 없는 경우에만 텍스트 메시지 표시
-      setSaveMsg('현재 최신 버전입니다.');
+    try {
+      const info = await window.electronAPI.checkForUpdates();
+      const currentVersion = await window.electronAPI.getAppVersion();
+      
+      if (!info || info.version === currentVersion) {
+        setSaveMsg('현재 최신 버전입니다.');
+        setTimeout(() => setSaveMsg(null), 5000);
+      } else {
+        // 새 버전이 있으면 UpdaterModal이 팝업을 띄우므로 여기 메시지는 지움
+        setSaveMsg(null);
+      }
+    } catch (e) {
+      setSaveMsg('업데이트 확인에 실패했습니다.');
       setTimeout(() => setSaveMsg(null), 5000);
-    } else {
-      // 새 버전이 있으면 UpdaterModal이 이벤트로 팝업을 표시하므로
-      // 여기서는 메시지만 간단히 정리
-      setSaveMsg(null);
     }
   };
 
@@ -206,7 +210,7 @@ export default function SettingsPanel() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between text-slate-400">
             <span>버전</span>
-            <span className="text-white font-mono">v1.0.0</span>
+            <span className="text-white font-mono">{appVersion}</span>
           </div>
           <div className="flex justify-between text-slate-400">
             <span>시스템 경로</span>

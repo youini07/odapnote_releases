@@ -441,6 +441,9 @@ ipcMain.handle('show-in-folder', (event, filePath: string) => {
   shell.showItemInFolder(filePath);
 });
 
+/** 앱 버전 가져오기 */
+ipcMain.handle('get-app-version', () => app.getVersion());
+
 /** 그림판으로 열기 */
 ipcMain.handle('open-in-paint', (event, filePath: string) => {
   return new Promise((resolve, reject) => {

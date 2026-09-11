@@ -61,6 +61,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ====== 설정 ======
   getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
   saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 
   // ====== 자동 업데이트 ======
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

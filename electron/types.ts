@@ -93,6 +93,14 @@ export interface AppSettings {
   customStorageDir?: string; // 사용자 지정 저장 경로
 }
 
+/** Electron API */
+export interface ElectronAPI {
+  getAppSettings: () => Promise<AppSettings>;
+  saveAppSettings: (settings: AppSettings) => Promise<boolean>;
+  getAppVersion: () => Promise<string>;
+  checkForUpdates: () => Promise<any>;
+}
+
 /** 내보내기 옵션 */
 export interface ExportOptions {
   format: 'pdf' | 'hwpx';

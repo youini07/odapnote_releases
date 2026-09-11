@@ -46,8 +46,9 @@ export interface ElectronAPI {
   // 설정
   getAppSettings: () => Promise<AppSettings>;
   saveAppSettings: (settings: AppSettings) => Promise<boolean>;
+  getAppVersion: () => Promise<string>;
 
-  // 업데이트
+  // 자동 업데이트
   checkForUpdates: () => Promise<any>;
   downloadUpdate: () => Promise<any>;
   quitAndInstall: () => Promise<void>;
