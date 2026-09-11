@@ -1,7 +1,7 @@
 {
   "name": "odapnote",
   "private": true,
-  "version": "1.0.8",
+  "version": "1.0.9",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -22,8 +22,7 @@
       {
         "provider": "github",
         "owner": "youini07",
-        "repo": "odapnote_releases",
-        "releaseType": "release"
+        "repo": "odapnote_releases"
       }
     ],
     "win": {
