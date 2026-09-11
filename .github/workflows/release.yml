@@ -27,15 +27,12 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build and Publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run dist -- -p always
+      - name: Build
+        run: npm run dist -- -p never
 
-      - name: Make Release Public
+      - name: Upload Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $VERSION = (Get-Content package.json | ConvertFrom-Json).version
-          gh release edit "v$VERSION" --draft=false --notes-file release-notes.md
-
+          gh release create "v$VERSION" "release/$VERSION/OdapNote-Setup-$VERSION.exe" "release/$VERSION/latest.yml" "release/$VERSION/OdapNote-Setup-$VERSION.exe.blockmap" --title "v$VERSION" --notes-file release-notes.md
