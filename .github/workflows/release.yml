@@ -32,9 +32,3 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist -- -p always
 
-      - name: Make Release Public
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $VERSION = (Get-Content package.json | ConvertFrom-Json).version
-          gh release edit "v$VERSION" --draft=false --notes-file release-notes.md
