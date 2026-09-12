@@ -273,7 +273,7 @@ export function getAppSettings(): AppSettings {
   const defaults: AppSettings = {
     geminiApiKey: '',
     paperSize: 'A4',
-    marginMm: 10,
+    academyLogoPath: '',
     questionsPerPage: 4,
     dataPath: getDataDir(),
   };

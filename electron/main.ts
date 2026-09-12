@@ -45,6 +45,10 @@ function createWindow() {
   }
 }
 
+// Windows에서 텍스트 입력창이나 드롭다운이 간헐적으로 먹통이 되는(클릭 무시)
+// Chromium 하드웨어 가속 버그를 방지하기 위해 가속 비활성화
+app.disableHardwareAcceleration();
+
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
@@ -217,6 +221,18 @@ ipcMain.handle('cancel-analyze-pdf', (event, workbookId: string) => {
 
 /** 문제집 목록 조회 */
 ipcMain.handle('get-workbooks', () => database.getWorkbooks());
+
+/** 문제집 수정 (폴더명 변경 등) */
+ipcMain.handle('update-workbook', (event, workbookId: string, updates: any) => {
+  const workbooks = database.getWorkbooks();
+  const workbook = workbooks.find(w => w.id === workbookId);
+  if (workbook) {
+    Object.assign(workbook, updates);
+    database.saveWorkbook(workbook);
+    return true;
+  }
+  return false;
+});
 
 /** 문제집 삭제 */
 ipcMain.handle('delete-workbook', (event, workbookId: string) => {
@@ -412,6 +428,20 @@ ipcMain.handle('select-save-dir', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
     title: '저장 폴더 선택',
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
+/** 학원 커스텀 로고 선택 다이얼로그 */
+ipcMain.handle('select-logo-image', async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: '이미지 파일', extensions: ['png', 'jpg', 'jpeg'] }],
+    title: '학원 로고 이미지 선택',
   });
   if (!result.canceled && result.filePaths.length > 0) {
     return result.filePaths[0];

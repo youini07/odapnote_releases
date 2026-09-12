@@ -3,16 +3,28 @@
 // ================================================================
 
 import { useState, useEffect } from 'react';
-import { Settings, HardDrive, FileText, Printer, RefreshCw, CheckCircle2, AlertCircle, Lock, Folder } from 'lucide-react';
+import { Settings, HardDrive, FileText, Printer, RefreshCw, CheckCircle2, AlertCircle, Lock, Folder, KeyRound, UserCircle } from 'lucide-react';
 import type { AppSettings } from './types';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
-export default function SettingsPanel() {
+interface SettingsPanelProps {
+  token?: string;
+}
+
+export default function SettingsPanel({ token }: SettingsPanelProps) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [appVersion, setAppVersion] = useState<string>('로딩 중...');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    window.electronAPI.getAppSettings().then(setSettings);
+    window.electronAPI.getAppSettings().then(s => {
+      setSettings(s);
+      if (s.academyLogoPath) {
+        window.electronAPI.readImageAsBase64(s.academyLogoPath).then(setLogoPreviewUrl);
+      }
+    });
     window.electronAPI.getAppVersion().then(v => setAppVersion(`v${v}`));
   }, []);
 
@@ -49,181 +61,251 @@ export default function SettingsPanel() {
     }
   };
 
+  const handleSelectLogo = async () => {
+    const logoPath = await window.electronAPI.selectLogoImage();
+    if (logoPath && settings) {
+      setSettings({ ...settings, academyLogoPath: logoPath });
+      const base64 = await window.electronAPI.readImageAsBase64(logoPath);
+      setLogoPreviewUrl(base64);
+    }
+  };
+
+  const handleClearLogo = () => {
+    if (settings) {
+      setSettings({ ...settings, academyLogoPath: undefined });
+      setLogoPreviewUrl(null);
+    }
+  };
+
   if (!settings) {
     return <div className="p-6 text-slate-500">로딩 중...</div>;
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
-      <h2 className="text-lg font-bold text-white flex items-center gap-2">
-        <Settings size={20} className="text-emerald-400" />
-        설정
-      </h2>
-
-      {/* API 키 설정 */}
-      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5">
-        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-          <Lock size={14} className="text-yellow-400" />
-          Gemini AI API 키
-        </h3>
-        
-        <div className="space-y-3">
-          <input
-            type="password"
-            value={settings.geminiApiKey}
-            onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
-            placeholder="AIzaSy..."
-            className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors"
-          />
-          
-          <div className="flex items-center gap-2 px-1">
-            {settings.geminiApiKey ? (
-              <>
-                <CheckCircle2 size={14} className="text-emerald-400" />
-                <span className="text-xs text-emerald-400">API 키가 입력되어 있습니다.</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle size={14} className="text-red-400" />
-                <span className="text-xs text-red-400">API 키를 입력해주세요.</span>
-              </>
-            )}
-          </div>
-        </div>
-        
-        <p className="text-[11px] text-slate-500 mt-4">
-          * Google AI Studio에서 발급받은 Gemini API 키를 입력하세요.
-        </p>
-      </div>
-
-      {/* 출력 설정 */}
-      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5">
-        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <Printer size={14} className="text-blue-400" />
-          출력 설정
-        </h3>
-
-        <div className="space-y-4">
-          {/* 용지 크기 */}
-          <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">용지 크기</label>
-            <div className="flex gap-2">
-              {(['A4', 'B4'] as const).map(size => (
-                <button
-                  key={size}
-                  onClick={() => setSettings({ ...settings, paperSize: size })}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                    settings.paperSize === size
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 페이지당 문제 수 */}
-          <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">페이지당 문제 수</label>
-            <select
-              value={settings.questionsPerPage}
-              onChange={(e) => setSettings({ ...settings, questionsPerPage: parseInt(e.target.value) })}
-              className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-            >
-              <option value={2}>2문제 (1×2)</option>
-              <option value={4}>4문제 (2×2)</option>
-              <option value={6}>6문제 (2×3)</option>
-            </select>
-          </div>
-
-          {/* 여백 */}
-          <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">
-              여백: {settings.marginMm}mm
-            </label>
-            <input
-              type="range"
-              min={5}
-              max={30}
-              value={settings.marginMm}
-              onChange={(e) => setSettings({ ...settings, marginMm: parseInt(e.target.value) })}
-              className="w-full accent-emerald-500"
-            />
-          </div>
+    <div className="p-6 h-full overflow-y-auto">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Settings size={20} className="text-emerald-400" />
+            설정
+          </h2>
+          <button
+            onClick={handleSave}
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-emerald-900/20 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <CheckCircle2 size={16} />
+            전체 설정 저장
+          </button>
         </div>
 
-        <button
-          onClick={handleSave}
-          className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          설정 저장
-        </button>
-      </div>
-
-      {/* 데이터 저장 경로 */}
-      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5">
-        <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <Folder size={14} className="text-amber-400" />
-          데이터 저장 경로
-        </h3>
-        
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 text-sm font-mono truncate">
-              {settings.customStorageDir || settings.dataPath}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* 왼쪽 열 (Left Column) */}
+          <div className="space-y-6">
+            
+            {/* 개인 계정 설정 */}
+            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <UserCircle size={14} className="text-blue-400" />
+                개인 계정 설정
+              </h3>
+              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                발급받은 초기 라이선스 비밀번호를 본인만의 안전한 비밀번호로 변경할 수 있습니다.
+              </p>
+              <button
+                onClick={() => setIsPasswordModalOpen(true)}
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 text-sm font-medium transition-colors flex items-center gap-2"
+              >
+                <KeyRound size={16} className="text-emerald-500" />
+                내 비밀번호 변경
+              </button>
             </div>
-            <button
-              onClick={handleSelectStorageDir}
-              className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
-            >
-              폴더 변경
-            </button>
-          </div>
-          
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mt-3">
-            <div className="flex gap-2">
-              <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-200/80 leading-relaxed">
-                <strong>주의:</strong> 경로를 변경하면 프로그램은 변경된 새 경로에서 데이터를 찾습니다. 
-                기존 작업물을 유지하려면 윈도우 탐색기에서 예전 데이터를 새 폴더로 직접 옮겨주세요.
+
+            {/* API 키 설정 */}
+            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <Lock size={14} className="text-yellow-400" />
+                Gemini AI API 키
+              </h3>
+              <div className="space-y-3">
+                <input
+                  type="password"
+                  value={settings.geminiApiKey}
+                  onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
+                  placeholder="AIzaSy..."
+                  className="w-full px-4 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                />
+                <div className="flex items-center gap-2 px-1">
+                  {settings.geminiApiKey ? (
+                    <>
+                      <CheckCircle2 size={14} className="text-emerald-400" />
+                      <span className="text-xs text-emerald-400">API 키가 입력되어 있습니다.</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle size={14} className="text-red-400" />
+                      <span className="text-xs text-red-400">API 키를 입력해주세요.</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-4 bg-slate-800/50 p-2 rounded">
+                * Google AI Studio에서 발급받은 Gemini API 키를 입력하세요.
+              </p>
+            </div>
+
+            {/* 데이터 저장 경로 */}
+            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <Folder size={14} className="text-amber-400" />
+                데이터 저장 경로
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 px-4 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-slate-300 text-sm font-mono truncate shadow-inner" title={settings.customStorageDir || settings.dataPath}>
+                    {settings.customStorageDir || settings.dataPath}
+                  </div>
+                  <button
+                    onClick={handleSelectStorageDir}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    폴더 변경
+                  </button>
+                </div>
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mt-3">
+                  <div className="flex gap-2">
+                    <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div className="text-xs text-amber-200/80 leading-relaxed">
+                      <strong>주의:</strong> 경로를 변경하면 프로그램은 변경된 새 경로에서 데이터를 찾습니다. 기존 작업물을 유지하려면 윈도우 탐색기에서 예전 데이터를 새 폴더로 직접 옮겨주세요.
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+
+          </div>
+
+          {/* 오른쪽 열 (Right Column) */}
+          <div className="space-y-6">
+            
+            {/* 출력 설정 */}
+            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <Printer size={14} className="text-blue-400" />
+                출력 설정
+              </h3>
+
+              <div className="space-y-6">
+                {/* 1열: 용지 & 페이지 설정 */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* 용지 크기 */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2 font-medium">용지 크기</label>
+                    <div className="flex gap-2">
+                      {(['A4', 'B4'] as const).map(size => (
+                        <button
+                          key={size}
+                          onClick={() => setSettings({ ...settings, paperSize: size })}
+                          className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                            settings.paperSize === size
+                              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-inner'
+                              : 'bg-slate-950/50 text-slate-400 border border-slate-700/50 hover:text-white hover:bg-slate-800'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 페이지당 문제 수 */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2 font-medium">페이지당 문제 수</label>
+                    <select
+                      value={settings.questionsPerPage}
+                      onChange={(e) => setSettings({ ...settings, questionsPerPage: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                    >
+                      <option value={2}>2문제 (1×2)</option>
+                      <option value={4}>4문제 (2×2)</option>
+                      <option value={6}>6문제 (2×3)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* 학원 커스텀 로고 */}
+                <div className="pt-5 border-t border-slate-700/50">
+                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">
+                    학원 전용 로고 / 전화번호 이미지
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-4 bg-slate-800/50 p-2 rounded leading-relaxed">
+                    * 추천 사이즈: 가로 250px × 세로 50px (비율 5:1)<br/>투명 배경의 PNG 파일을 권장합니다. 출력 시 PDF 헤더 우측 상단에 고정 출력됩니다.
+                  </p>
+                  
+                  <div className="flex items-center gap-3 mb-3">
+                    <button
+                      onClick={handleSelectLogo}
+                      className="px-4 py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm"
+                    >
+                      <Folder size={14} className="text-blue-400" />
+                      이미지 파일 찾기
+                    </button>
+                    
+                    {settings.academyLogoPath && (
+                      <button
+                        onClick={handleClearLogo}
+                        className="px-3 py-2 text-xs text-red-400 bg-red-900/20 hover:bg-red-900/40 rounded transition-colors"
+                      >
+                        초기화
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="w-full min-h-[80px] bg-slate-950/50 border border-slate-700/50 rounded-lg flex items-center justify-center p-4 relative overflow-hidden group">
+                    {logoPreviewUrl ? (
+                      <img src={logoPreviewUrl} alt="로고 미리보기" className="h-[40px] max-w-full object-contain" />
+                    ) : (
+                      <span className="text-sm text-slate-600">등록된 로고가 없습니다.</span>
+                    )}
+                  </div>
+                  
+                  {settings.academyLogoPath && (
+                    <div className="mt-2 text-[10px] text-slate-500 font-mono truncate" title={settings.academyLogoPath}>
+                      경로: {settings.academyLogoPath}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 데이터 & 앱 정보 */}
+            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <HardDrive size={14} className="text-purple-400" />
+                앱 정보
+              </h3>
+              <div className="space-y-3 text-sm bg-slate-950/50 rounded-lg p-4 border border-slate-700/50">
+                <div className="flex justify-between items-center text-slate-400 border-b border-slate-800 pb-2">
+                  <span>앱 버전</span>
+                  <span className="text-white font-mono bg-slate-800 px-2 py-0.5 rounded">{appVersion}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-400 pt-1">
+                  <span>기본 시스템 경로</span>
+                  <span className="text-slate-500 text-[10px] font-mono truncate max-w-[200px]" title={settings.dataPath}>
+                    {settings.dataPath}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleCheckUpdate}
+                className="w-full mt-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+              >
+                <RefreshCw size={14} className="text-slate-400" />
+                소프트웨어 업데이트 확인
+              </button>
+            </div>
+
           </div>
         </div>
-
-        <button
-          onClick={handleSave}
-          className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          설정 저장
-        </button>
-      </div>
-
-      {/* 데이터 & 앱 정보 */}
-      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5">
-        <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-          <HardDrive size={14} className="text-purple-400" />
-          앱 정보
-        </h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between text-slate-400">
-            <span>버전</span>
-            <span className="text-white font-mono">{appVersion}</span>
-          </div>
-          <div className="flex justify-between text-slate-400">
-            <span>시스템 경로</span>
-            <span className="text-slate-500 text-xs font-mono truncate max-w-[300px]">{settings.dataPath}</span>
-          </div>
-        </div>
-        <button
-          onClick={handleCheckUpdate}
-          className="mt-3 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
-        >
-          <RefreshCw size={14} />
-          업데이트 확인
-        </button>
       </div>
 
       {/* 저장 메시지 */}
@@ -233,6 +315,13 @@ export default function SettingsPanel() {
           {saveMsg}
         </div>
       )}
+
+      {/* 비밀번호 변경 모달 */}
+      <ChangePasswordModal 
+        isOpen={isPasswordModalOpen} 
+        onClose={() => setIsPasswordModalOpen(false)} 
+        token={token || ''} 
+      />
     </div>
   );
 }

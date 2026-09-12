@@ -13,7 +13,9 @@ export default function StudentPanel() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
-  const [newMemo, setNewMemo] = useState('');
+  const [newAffiliation, setNewAffiliation] = useState('');
+  const [newSchoolName, setNewSchoolName] = useState('');
+  const [newGrade, setNewGrade] = useState('');
 
   const loadStudents = useCallback(async () => {
     const data = await window.electronAPI.getStudents();
@@ -30,13 +32,17 @@ export default function StudentPanel() {
     const student: Student = {
       id: `st_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       name: newName.trim(),
-      memo: newMemo.trim() || undefined,
+      affiliation: newAffiliation.trim() || undefined,
+      schoolName: newSchoolName.trim() || undefined,
+      grade: newGrade.trim() || undefined,
       createdAt: new Date().toISOString(),
       odapNotes: [],
     };
     await window.electronAPI.saveStudent(student);
     setNewName('');
-    setNewMemo('');
+    setNewAffiliation('');
+    setNewSchoolName('');
+    setNewGrade('');
     setShowAddModal(false);
     await loadStudents();
   };
@@ -44,11 +50,19 @@ export default function StudentPanel() {
   // 학생 수정
   const handleEditStudent = async () => {
     if (!editingStudent || !newName.trim()) return;
-    const updated = { ...editingStudent, name: newName.trim(), memo: newMemo.trim() || undefined };
+    const updated = { 
+      ...editingStudent, 
+      name: newName.trim(), 
+      affiliation: newAffiliation.trim() || undefined,
+      schoolName: newSchoolName.trim() || undefined,
+      grade: newGrade.trim() || undefined,
+    };
     await window.electronAPI.saveStudent(updated);
     setEditingStudent(null);
     setNewName('');
-    setNewMemo('');
+    setNewAffiliation('');
+    setNewSchoolName('');
+    setNewGrade('');
     await loadStudents();
   };
 
@@ -63,7 +77,10 @@ export default function StudentPanel() {
   const openEditModal = (student: Student) => {
     setEditingStudent(student);
     setNewName(student.name);
-    setNewMemo(student.memo || '');
+    // 하위 호환성: affiliation이 없고 memo만 있으면 memo를 affiliation으로 표시
+    setNewAffiliation(student.affiliation || (student.schoolName || student.grade ? '' : (student.memo || '')));
+    setNewSchoolName(student.schoolName || '');
+    setNewGrade(student.grade || '');
   };
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
@@ -79,7 +96,7 @@ export default function StudentPanel() {
             <span className="text-sm text-slate-500 font-normal">({students.length})</span>
           </h2>
           <button
-            onClick={() => { setShowAddModal(true); setNewName(''); setNewMemo(''); }}
+            onClick={() => { setShowAddModal(true); setNewName(''); setNewAffiliation(''); setNewSchoolName(''); setNewGrade(''); }}
             className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
           >
             <UserPlus size={14} />
@@ -112,7 +129,11 @@ export default function StudentPanel() {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-white truncate">{student.name}</div>
                 <div className="text-[10px] text-slate-500 flex items-center gap-2">
-                  {student.memo && <span>{student.memo}</span>}
+                  {student.affiliation && <span className="font-medium text-emerald-400">{student.affiliation}</span>}
+                  {student.schoolName && <span>{student.schoolName}</span>}
+                  {student.grade && <span>{student.grade}</span>}
+                  {/* 하위 호환성 지원: affiliation, schoolName, grade 모두 없는데 memo가 있는 경우 */}
+                  {student.memo && !student.affiliation && !student.schoolName && !student.grade && <span>{student.memo}</span>}
                   <span>오답노트 {student.odapNotes.length}건</span>
                 </div>
               </div>
@@ -152,7 +173,11 @@ export default function StudentPanel() {
               <div>
                 <h3 className="text-lg font-bold text-white">{selectedStudent.name}</h3>
                 <p className="text-xs text-slate-500">
-                  {selectedStudent.memo && `${selectedStudent.memo} · `}
+                  {selectedStudent.affiliation && <span className="text-emerald-400 font-medium mr-1">{selectedStudent.affiliation}</span>}
+                  {selectedStudent.schoolName && <span className="mr-1">{selectedStudent.schoolName}</span>}
+                  {selectedStudent.grade && <span className="mr-1">{selectedStudent.grade}</span>}
+                  {selectedStudent.memo && !selectedStudent.affiliation && !selectedStudent.schoolName && !selectedStudent.grade && <span className="mr-1">{selectedStudent.memo}</span>}
+                  {((selectedStudent.affiliation || selectedStudent.schoolName || selectedStudent.grade || selectedStudent.memo) ? '· ' : '')}
                   등록일: {new Date(selectedStudent.createdAt).toLocaleDateString()}
                 </p>
               </div>
@@ -213,14 +238,36 @@ export default function StudentPanel() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1">메모 (학교/학년 등)</label>
+                <label className="block text-xs text-slate-400 mb-1">소속 (학원/반)</label>
                 <input
                   type="text"
-                  value={newMemo}
-                  onChange={(e) => setNewMemo(e.target.value)}
-                  placeholder="예: 중학교 1학년"
+                  value={newAffiliation}
+                  onChange={(e) => setNewAffiliation(e.target.value)}
+                  placeholder="예: 강남본원 A반"
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">학교명</label>
+                  <input
+                    type="text"
+                    value={newSchoolName}
+                    onChange={(e) => setNewSchoolName(e.target.value)}
+                    placeholder="예: 대치고등학교"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">학년</label>
+                  <input
+                    type="text"
+                    value={newGrade}
+                    onChange={(e) => setNewGrade(e.target.value)}
+                    placeholder="예: 1학년"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  />
+                </div>
               </div>
             </div>
 

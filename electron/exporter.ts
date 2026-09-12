@@ -42,7 +42,7 @@ export async function generatePdf(
   return new Promise((resolve, reject) => {
     try {
       const settings = getAppSettings();
-      const marginPt = settings.marginMm * 2.83465; // 1mm = 2.83465pt
+      const marginPt = 15 * 2.83465; // 고정 15mm (1mm = 2.83465pt)
       
       const doc = new PDFDocument({
         size: settings.paperSize,
@@ -75,7 +75,7 @@ export async function generatePdf(
         );
 
         // 헤더 그리기
-        drawHeader(doc, studentName, workbookName, isAnswerSheet, marginPt);
+        drawHeader(doc, studentName, workbookName, isAnswerSheet, marginPt, settings.academyLogoPath);
 
         // 그리드로 문제 배치
         drawQuestionGrid(doc, pageQuestions, isAnswerSheet, settings, questionsPerPageOverride);
@@ -99,7 +99,8 @@ function drawHeader(
   studentName: string, 
   workbookName: string,
   isAnswerSheet: boolean,
-  marginPt: number
+  marginPt: number,
+  academyLogoPath?: string
 ): void {
   const headerHeight = 50;
   const contentWidth = doc.page.width - marginPt * 2;
@@ -121,6 +122,23 @@ function drawHeader(
      .text(`교재 :  ${workbookName} ${subtitle}`, marginPt + 10, marginPt + 28, {
        width: contentWidth - 20,
      });
+
+  // 커스텀 학원 로고 렌더링 (설정된 경우)
+  if (academyLogoPath && fs.existsSync(academyLogoPath)) {
+    try {
+      // 권장 가로 폭을 약 150pt로 제한, 높이는 헤더에 맞게 비례 축소 (최대 높이 40pt)
+      const logoMaxWidth = 250;
+      const logoMaxHeight = 44;
+      
+      doc.image(academyLogoPath, marginPt + contentWidth - logoMaxWidth - 3, marginPt + 3, {
+        fit: [logoMaxWidth, logoMaxHeight],
+        align: 'right',
+        valign: 'center'
+      });
+    } catch (e) {
+      console.error('[Exporter] 로고 이미지 렌더링 실패:', e);
+    }
+  }
 }
 
 /**
@@ -134,7 +152,7 @@ function drawQuestionGrid(
   settings: any,
   questionsPerPageOverride?: number
 ): void {
-  const marginPt = settings.marginMm * 2.83465;
+  const marginPt = 15 * 2.83465; // 고정 15mm
   const headerHeight = 50;
   const gridTop = marginPt + headerHeight;
   const contentWidth = doc.page.width - marginPt * 2;

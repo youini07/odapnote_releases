@@ -4,7 +4,7 @@
 // ================================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { Upload, BookOpen, Trash2, Link, Search, FileText, Loader2, AlertCircle, CheckCircle2, Image, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { Upload, BookOpen, Trash2, Link, Search, FileText, Loader2, AlertCircle, CheckCircle2, Image, ChevronDown, ChevronUp, RefreshCw, FolderOpen, Edit2, Save, X } from 'lucide-react';
 import type { Workbook, Question } from './types';
 
 export default function WorkbookPanel() {
@@ -20,6 +20,7 @@ export default function WorkbookPanel() {
   const [questionImages, setQuestionImages] = useState<Record<string, string>>({});
   const [pairingMode, setPairingMode] = useState<string | null>(null); // 매칭할 문제집 ID
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [uploadFolderName, setUploadFolderName] = useState<string>(''); // 업로드 시 폴더명 지정
 
   // 데이터 로딩
   const loadWorkbooks = useCallback(async () => {
@@ -76,7 +77,22 @@ export default function WorkbookPanel() {
 
       const result = await window.electronAPI.analyzePdf(fileToAnalyze, selectedType, startNumber.trim() || undefined, startP, endP);
       
-      if (result.success) {
+      if (result.success && result.workbook) {
+        // 방금 생성된 문제집의 폴더명 업데이트 (DB 저장을 위해)
+        if (uploadFolderName.trim()) {
+           const updatedWb = { ...result.workbook, folderName: uploadFolderName.trim() };
+           // We need a way to save updated workbook. We don't have a direct saveWorkbook API exposed to renderer.
+           // However, analyzePdf might save it. Wait, if we can't update it directly, we might need to add it to API.
+           // Actually, since we don't have `updateWorkbook` API, we should expose it or pass folderName to analyzePdf.
+           // Let's pass folderName to analyzePdf if possible, or add updateWorkbook API. 
+           // BUT changing analyzePdf signature is hard because it's used in main process.
+           // Let's add `updateWorkbook` API to preload/main later, or just use a new API endpoint.
+           // WAIT! The user didn't ask to set folder DURING upload specifically, they just said "분류완료된 문제집을 폴더를 만들어서 문제집을 분류 보관할수 있게해줘."
+           // I'll add `updateWorkbook` to window.electronAPI in a moment. For now, let's call `window.electronAPI.updateWorkbook(workbookId, {folderName})`.
+           if ((window.electronAPI as any).updateWorkbook) {
+               await (window.electronAPI as any).updateWorkbook(result.workbook.id, { folderName: uploadFolderName.trim() });
+           }
+        }
         await loadWorkbooks();
         setAnalyzingJobs(prev => {
           const next = { ...prev };
@@ -203,8 +219,81 @@ export default function WorkbookPanel() {
     }
   };
 
+  const handleUpdateFolder = async (workbookId: string, folderName: string) => {
+    if ((window.electronAPI as any).updateWorkbook) {
+       await (window.electronAPI as any).updateWorkbook(workbookId, { folderName: folderName.trim() || undefined });
+       await loadWorkbooks();
+    } else {
+       alert("해당 기능을 지원하려면 앱 업데이트(백엔드 변경)가 필요합니다.");
+    }
+  };
+
   const studentWorkbooks = workbooks.filter(w => w.type === 'student');
   const teacherWorkbooks = workbooks.filter(w => w.type === 'teacher');
+
+  const renderWorkbooksByFolder = (workbooksToRender: Workbook[], title: string, icon: React.ReactNode) => {
+    const groups: Record<string, Workbook[]> = {};
+    workbooksToRender.forEach(wb => {
+      const folder = wb.folderName || '미분류';
+      if (!groups[folder]) groups[folder] = [];
+      groups[folder].push(wb);
+    });
+
+    const folders = Object.keys(groups).sort((a, b) => {
+      if (a === '미분류') return 1;
+      if (b === '미분류') return -1;
+      return a.localeCompare(b);
+    });
+
+    return (
+      <div>
+        <h3 className="text-sm font-semibold text-slate-400 mb-2 flex items-center gap-2">
+          {icon}
+          {title} ({workbooksToRender.length})
+        </h3>
+        <div className="space-y-4">
+          {folders.map(folder => (
+            <div key={folder} className="bg-slate-900/40 rounded-lg p-3 border border-slate-700/30">
+              <div className="text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5 px-1">
+                <FolderOpen size={14} className={folder === '미분류' ? 'text-slate-500' : 'text-emerald-500'} />
+                {folder}
+                <span className="text-slate-500 font-normal ml-1">({groups[folder].length})</span>
+              </div>
+              <div className="space-y-2 pl-2">
+                {groups[folder].map(wb => (
+                  <WorkbookCard
+                    key={wb.id}
+                    workbook={wb}
+                    allWorkbooks={workbooks}
+                    isExpanded={expandedWorkbook === wb.id}
+                    questions={expandedWorkbook === wb.id ? questions : []}
+                    questionImages={questionImages}
+                    pairingMode={pairingMode}
+                    onToggleExpand={() => toggleExpand(wb.id)}
+                    onDelete={() => requestDelete(wb)}
+                    onStartPairing={() => setPairingMode(wb.id)}
+                    onCancelPairing={() => setPairingMode(null)}
+                    onPairWith={handlePair}
+                    onResumeAnalysis={() => handleResumeAnalysis(wb.id, wb.filePath, wb.type)}
+                    onCancelAnalysis={() => handleCancelAnalysis(wb.id)}
+                    onRescan={() => handleRescan(wb.id)}
+                    onReloadData={() => handleReloadData(wb.id)}
+                    onUpdateFolder={(folder) => handleUpdateFolder(wb.id, folder)}
+                    jobProgress={analyzingJobs[wb.id]}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+          {workbooksToRender.length === 0 && (
+            <div className="text-center py-8 text-slate-600 text-sm">
+              아직 등록된 {title}이(가) 없습니다
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -280,6 +369,19 @@ export default function WorkbookPanel() {
               </div>
             </div>
           </div>
+          {/* 폴더명 (선택) */}
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5 font-medium">분류 폴더명 (선택)</label>
+              <input
+                type="text"
+                value={uploadFolderName}
+                onChange={(e) => setUploadFolderName(e.target.value)}
+                placeholder="예: 고1 수학"
+                className="px-3 py-2 text-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-lg placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 w-32"
+              />
+            </div>
+          </div>
 
           <div className="flex gap-2 items-end">
             {/* 파일 첨부 버튼 */}
@@ -317,78 +419,12 @@ export default function WorkbookPanel() {
       </div>
 
       {/* 문제집 목록 */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* 학생용 문제집 */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-400 mb-2 flex items-center gap-2">
-            <BookOpen size={14} />
-            학생용 문제집 ({studentWorkbooks.length})
-          </h3>
-          <div className="space-y-2">
-            {studentWorkbooks.map(wb => (
-              <WorkbookCard
-                key={wb.id}
-                workbook={wb}
-                allWorkbooks={workbooks}
-                isExpanded={expandedWorkbook === wb.id}
-                questions={expandedWorkbook === wb.id ? questions : []}
-                questionImages={questionImages}
-                pairingMode={pairingMode}
-                onToggleExpand={() => toggleExpand(wb.id)}
-                onDelete={() => requestDelete(wb)}
-                onStartPairing={() => setPairingMode(wb.id)}
-                onCancelPairing={() => setPairingMode(null)}
-                onPairWith={handlePair}
-                onResumeAnalysis={() => handleResumeAnalysis(wb.id, wb.filePath, wb.type)}
-                onCancelAnalysis={() => handleCancelAnalysis(wb.id)}
-                onRescan={() => handleRescan(wb.id)}
-                onReloadData={() => handleReloadData(wb.id)}
-                jobProgress={analyzingJobs[wb.id]}
-              />
-            ))}
-            {studentWorkbooks.length === 0 && (
-              <div className="text-center py-8 text-slate-600 text-sm">
-                아직 등록된 학생용 문제집이 없습니다
-              </div>
-            )}
-          </div>
-        </div>
+        {renderWorkbooksByFolder(studentWorkbooks, "학생용 문제집", <BookOpen size={14} />)}
 
         {/* 교사용 문제집 */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-400 mb-2 flex items-center gap-2">
-            <FileText size={14} />
-            교사용 답안지 ({teacherWorkbooks.length})
-          </h3>
-          <div className="space-y-2">
-            {teacherWorkbooks.map(wb => (
-              <WorkbookCard
-                key={wb.id}
-                workbook={wb}
-                allWorkbooks={workbooks}
-                isExpanded={expandedWorkbook === wb.id}
-                questions={expandedWorkbook === wb.id ? questions : []}
-                questionImages={questionImages}
-                pairingMode={pairingMode}
-                onToggleExpand={() => toggleExpand(wb.id)}
-                onDelete={() => requestDelete(wb)}
-                onStartPairing={() => setPairingMode(wb.id)}
-                onCancelPairing={() => setPairingMode(null)}
-                onPairWith={handlePair}
-                onResumeAnalysis={() => handleResumeAnalysis(wb.id, wb.filePath, wb.type)}
-                onCancelAnalysis={() => handleCancelAnalysis(wb.id)}
-                onRescan={() => handleRescan(wb.id)}
-                onReloadData={() => handleReloadData(wb.id)}
-                jobProgress={analyzingJobs[wb.id]}
-              />
-            ))}
-            {teacherWorkbooks.length === 0 && (
-              <div className="text-center py-8 text-slate-600 text-sm">
-                아직 등록된 교사용 답안지가 없습니다
-              </div>
-            )}
-          </div>
-        </div>
+        {renderWorkbooksByFolder(teacherWorkbooks, "교사용 답안지", <FileText size={14} />)}
       </div>
       {/* 삭제 확인 모달 */}
       {workbookToDelete && (
@@ -455,14 +491,17 @@ interface WorkbookCardProps {
   onCancelAnalysis: () => void;
   onRescan: () => void;
   onReloadData: () => void;
+  onUpdateFolder: (folderName: string) => void;
   jobProgress?: { message: string, percent: number };
 }
 
 function WorkbookCard({
   workbook, allWorkbooks, isExpanded, questions, questionImages,
-  pairingMode, onToggleExpand, onDelete, onStartPairing, onCancelPairing, onPairWith, onResumeAnalysis, onCancelAnalysis, onRescan, onReloadData, jobProgress
+  pairingMode, onToggleExpand, onDelete, onStartPairing, onCancelPairing, onPairWith, onResumeAnalysis, onCancelAnalysis, onRescan, onReloadData, onUpdateFolder, jobProgress
 }: WorkbookCardProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isEditingFolder, setIsEditingFolder] = useState(false);
+  const [editFolderInput, setEditFolderInput] = useState(workbook.folderName || '');
 
   // isExpanded가 변경될 때 선택 초기화
   useEffect(() => {
@@ -545,7 +584,42 @@ function WorkbookCard({
         </div>
 
         {/* 버튼들 */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
+          {isEditingFolder ? (
+            <div className="flex items-center gap-1 bg-slate-800 rounded p-1" onClick={e => e.stopPropagation()}>
+              <input 
+                type="text" 
+                value={editFolderInput} 
+                onChange={e => setEditFolderInput(e.target.value)} 
+                placeholder="폴더명"
+                className="w-24 px-1.5 py-0.5 text-xs bg-slate-900 border border-slate-700 rounded text-white focus:outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    onUpdateFolder(editFolderInput);
+                    setIsEditingFolder(false);
+                  } else if (e.key === 'Escape') {
+                    setIsEditingFolder(false);
+                  }
+                }}
+                autoFocus
+              />
+              <button onClick={() => { onUpdateFolder(editFolderInput); setIsEditingFolder(false); }} className="p-1 text-emerald-400 hover:bg-emerald-500/20 rounded">
+                <Save size={12} />
+              </button>
+              <button onClick={() => setIsEditingFolder(false)} className="p-1 text-slate-400 hover:bg-slate-700 rounded">
+                <X size={12} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditFolderInput(workbook.folderName || ''); setIsEditingFolder(true); }}
+              className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors"
+              title="폴더명 수정"
+            >
+              <FolderOpen size={14} />
+            </button>
+          )}
+
           {!paired && !pairingMode && (
             <button
               onClick={(e) => { e.stopPropagation(); onStartPairing(); }}

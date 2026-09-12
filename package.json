@@ -1,7 +1,7 @@
 {
   "name": "odapnote",
   "private": true,
-  "version": "1.0.11",
+  "version": "1.0.12",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -31,7 +31,8 @@
       ]
     },
     "nsis": {
-      "artifactName": "OdapNote-Setup-${version}.${ext}"
+      "artifactName": "OdapNote-Setup-${version}.${ext}",
+      "license": "license.txt"
     },
     "files": [
       "dist/**/*",
@@ -41,6 +42,7 @@
   "dependencies": {
     "@google/genai": "^1.0.0",
     "archiver": "^7.0.1",
+    "dommatrix": "^0.1.1",
     "electron-updater": "^6.8.9",
     "path2d-polyfill": "^3.2.3",
     "pdf-to-img": "^4.2.0",

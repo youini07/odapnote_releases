@@ -3,11 +3,11 @@
 // 학생 선택 → 문제집 선택 → 문제번호 입력 → 오답노트 생성/출력
 // ================================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FileText, Download, Printer, Eye, Loader2,
   CheckCircle2, AlertCircle, Plus, X, Image,
-  BookOpen, User
+  BookOpen, User, ChevronDown
 } from 'lucide-react';
 import type { Student, Workbook, Question } from './types';
 
@@ -133,6 +133,22 @@ export default function OdapNotePanel() {
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const selectedWorkbook = workbooks.find(w => w.id === selectedWorkbookId);
 
+  const studentOptions = students.map(s => {
+    let group = s.affiliation || '미분류';
+    let label = s.name;
+    const sub = [s.schoolName, s.grade].filter(Boolean).join(' ');
+    if (sub) label += ` (${sub})`;
+    else if (s.memo && !s.affiliation && !s.schoolName && !s.grade) label += ` (${s.memo})`;
+    
+    return { value: s.id, label, group };
+  });
+
+  const workbookOptions = workbooks.map(w => ({
+    value: w.id,
+    label: `${w.name} (${w.totalQuestions}문제)`,
+    group: w.folderName || '미분류'
+  }));
+
   return (
     <div className="p-6 space-y-6 h-full overflow-y-auto">
       {/* 상단: 입력 영역 */}
@@ -149,16 +165,12 @@ export default function OdapNotePanel() {
               <User size={12} />
               학생 선택
             </label>
-            <select
+            <SearchableDropdown
+              options={studentOptions}
               value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors appearance-none cursor-pointer"
-            >
-              <option value="">-- 학생을 선택하세요 --</option>
-              {students.map(s => (
-                <option key={s.id} value={s.id}>{s.name} {s.memo ? `(${s.memo})` : ''}</option>
-              ))}
-            </select>
+              onChange={setSelectedStudentId}
+              placeholder="-- 학생을 선택하세요 --"
+            />
           </div>
 
           {/* 문제집 선택 */}
@@ -167,16 +179,12 @@ export default function OdapNotePanel() {
               <BookOpen size={12} />
               문제집 선택
             </label>
-            <select
+            <SearchableDropdown
+              options={workbookOptions}
               value={selectedWorkbookId}
-              onChange={(e) => setSelectedWorkbookId(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors appearance-none cursor-pointer"
-            >
-              <option value="">-- 문제집을 선택하세요 --</option>
-              {workbooks.map(w => (
-                <option key={w.id} value={w.id}>{w.name} ({w.totalQuestions}문제)</option>
-              ))}
-            </select>
+              onChange={setSelectedWorkbookId}
+              placeholder="-- 문제집을 선택하세요 --"
+            />
           </div>
         </div>
 
@@ -386,6 +394,113 @@ export default function OdapNotePanel() {
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===================== 커스텀 검색 가능 드롭다운 =====================
+
+interface DropdownOption {
+  value: string;
+  label: string;
+  group?: string;
+}
+
+function SearchableDropdown({
+  options,
+  value,
+  onChange,
+  placeholder
+}: {
+  options: DropdownOption[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => opt.label.toLowerCase().includes(searchTerm.toLowerCase()));
+  
+  const groups: Record<string, DropdownOption[]> = {};
+  filteredOptions.forEach(opt => {
+    const groupName = opt.group || '미분류';
+    if (!groups[groupName]) groups[groupName] = [];
+    groups[groupName].push(opt);
+  });
+
+  const selectedOption = options.find(o => o.value === value);
+
+  return (
+    <div className="relative w-full" ref={wrapperRef}>
+      <div 
+        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm flex items-center justify-between cursor-pointer focus:outline-none focus:border-emerald-500 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className={selectedOption ? 'text-white' : 'text-slate-400'}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <ChevronDown size={14} className="text-slate-400" />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden max-h-[300px] flex flex-col">
+          <div className="p-2 border-b border-slate-700 shrink-0">
+            <input
+              type="text"
+              placeholder="검색어를 입력하세요..."
+              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              autoFocus
+            />
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {Object.keys(groups).sort((a,b) => {
+              if (a === '미분류') return 1;
+              if (b === '미분류') return -1;
+              return a.localeCompare(b);
+            }).map(group => (
+              <div key={group}>
+                <div className="px-3 py-1.5 text-[11px] font-bold text-emerald-500 bg-slate-800/80 uppercase tracking-wider sticky top-0 backdrop-blur-sm z-10 border-b border-slate-700/50">
+                  {group}
+                </div>
+                {groups[group].map(opt => (
+                  <div
+                    key={opt.value}
+                    className={`px-3 py-2.5 text-sm cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors flex items-center justify-between ${value === opt.value ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300'}`}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                      setSearchTerm('');
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {value === opt.value && <CheckCircle2 size={14} className="text-emerald-400" />}
+                  </div>
+                ))}
+              </div>
+            ))}
+            {filteredOptions.length === 0 && (
+              <div className="px-3 py-6 text-center text-slate-500 text-sm">
+                검색 결과가 없습니다
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

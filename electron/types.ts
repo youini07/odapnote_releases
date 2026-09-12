@@ -14,6 +14,7 @@ export interface Workbook {
   totalQuestions: number;  // 총 문제 수
   status?: 'analyzing' | 'paused' | 'completed' | 'error'; // 분석 진행 상태
   lastAnalyzedPage?: number; // 마지막으로 분석된 페이지 번호
+  folderName?: string;    // 분류 보관용 폴더명
 }
 
 /** 개별 문제 정보 */
@@ -41,7 +42,10 @@ export interface BoundingBox {
 export interface Student {
   id: string;
   name: string;
-  memo?: string;          // 메모 (학교, 학년 등)
+  memo?: string;          // 하위 호환성 위해 남겨둠
+  affiliation?: string;   // 소속
+  schoolName?: string;    // 학교명
+  grade?: string;         // 학년
   createdAt: string;
   odapNotes: OdapNoteRecord[];
 }
@@ -87,7 +91,7 @@ export interface AIAnalysisResult {
 export interface AppSettings {
   geminiApiKey: string;
   paperSize: 'A4' | 'B4';
-  marginMm: number;       // 여백 (mm)
+  academyLogoPath?: string; // 학원 커스텀 로고
   questionsPerPage: number; // 페이지당 문제 수 (기본: 4)
   dataPath: string;        // 데이터 저장 경로
   customStorageDir?: string; // 사용자 지정 저장 경로

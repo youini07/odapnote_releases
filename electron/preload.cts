@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** 문제집 목록 조회 */
   getWorkbooks: () => ipcRenderer.invoke('get-workbooks'),
   
+  /** 문제집 수정 (폴더명 등) */
+  updateWorkbook: (workbookId: string, updates: any) => ipcRenderer.invoke('update-workbook', workbookId, updates),
+  
   /** 문제집 삭제 */
   deleteWorkbook: (workbookId: string) => ipcRenderer.invoke('delete-workbook', workbookId),
   
@@ -59,6 +62,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   /** 파일 저장 위치 선택 */
   selectSaveDir: () => ipcRenderer.invoke('select-save-dir'),
+  
+  /** 로고 이미지 선택 */
+  selectLogoImage: () => ipcRenderer.invoke('select-logo-image'),
 
   // ====== 설정 ======
   getAppSettings: () => ipcRenderer.invoke('get-app-settings'),

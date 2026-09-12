@@ -6,16 +6,18 @@
     "createdAt": "2026-09-11T08:26:04.670Z",
     "odapNotes": [
       {
-        "id": "on_1789116240599",
+        "id": "on_1789178734197",
         "name": "22개정 RPM 공통수학2_dd",
         "workbookId": "wb_1789115212780_3bi9sx",
         "workbookName": "22개정 RPM 공통수학2",
         "questionNumbers": [
+          "0022",
+          "0024",
           "0026"
         ],
-        "createdAt": "2026-09-11T08:44:00.599Z",
+        "createdAt": "2026-09-12T02:05:34.197Z",
         "exportedAs": "pdf",
-        "exportedPath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\exports\\22개정 RPM 공통수학2_dd_4x_1789116243749.pdf"
+        "exportedPath": "C:\\Users\\youin\\OneDrive\\바탕 화면\\오답노트\\문제집이미지\\exports\\22개정 RPM 공통수학2_dd_4x_1789178757377.pdf"
       }
     ]
   }

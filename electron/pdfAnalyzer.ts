@@ -8,9 +8,17 @@
 // ================================================================
 
 import { Path2D } from 'path2d';
-if (typeof global !== 'undefined' && !(global as any).Path2D) {
-  (global as any).Path2D = Path2D;
+import DOMMatrix from 'dommatrix';
+
+if (typeof global !== 'undefined') {
+  if (!(global as any).Path2D) {
+    (global as any).Path2D = Path2D;
+  }
+  if (!(global as any).DOMMatrix) {
+    (global as any).DOMMatrix = DOMMatrix;
+  }
 }
+
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';

@@ -15,6 +15,7 @@ export interface ElectronAPI {
   }>;
   cancelAnalyzePdf: (workbookId: string) => Promise<boolean>;
   getWorkbooks: () => Promise<Workbook[]>;
+  updateWorkbook: (workbookId: string, updates: Partial<Workbook>) => Promise<boolean>;
   deleteWorkbook: (workbookId: string) => Promise<boolean>;
   pairWorkbooks: (studentId: string, teacherId: string) => Promise<boolean>;
   getQuestions: (workbookId: string) => Promise<Question[]>;
@@ -44,6 +45,7 @@ export interface ElectronAPI {
   printOdapNoteWithLayout: (studentId: string, recordId: string, layout: number) => Promise<{ success: boolean; error?: string; isFallback?: boolean }>;
   deleteOdapNoteRecord: (studentId: string, recordId: string) => Promise<{ success: boolean; error?: string }>;
   selectSaveDir: () => Promise<string | null>;
+  selectLogoImage: () => Promise<string | null>;
 
   // 설정
   getAppSettings: () => Promise<AppSettings>;
@@ -84,6 +86,7 @@ export interface Workbook {
   totalQuestions: number;
   status?: 'analyzing' | 'paused' | 'completed' | 'error';
   lastAnalyzedPage?: number;
+  folderName?: string; // 분류를 위한 폴더명 커스텀 지원
 }
 
 export interface Question {
@@ -101,7 +104,10 @@ export interface Question {
 export interface Student {
   id: string;
   name: string;
-  memo?: string;
+  memo?: string; // 하위 호환성 위해 남겨둠
+  affiliation?: string; // 소속
+  schoolName?: string; // 학교명
+  grade?: string; // 학년
   createdAt: string;
   odapNotes: OdapNoteRecord[];
 }
@@ -121,7 +127,7 @@ export interface OdapNoteRecord {
 export interface AppSettings {
   geminiApiKey: string;
   paperSize: 'A4' | 'B4';
-  marginMm: number;
+  academyLogoPath?: string;
   questionsPerPage: number;
   dataPath: string;
   customStorageDir?: string;
