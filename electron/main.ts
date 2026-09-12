@@ -39,11 +39,13 @@ function createWindow() {
   // 개발 모드에서는 Vite dev server, 프로덕션에서는 빌드된 파일
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    // 개발자 도구 자동 실행 해제
-    // mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  // Windows에서 Alt 키를 눌렀을 때 숨겨진 메뉴바가 포커스를 가로채어
+  // 입력창이 먹통이 되는 현상 방지
+  mainWindow.removeMenu();
 }
 
 // Windows에서 텍스트 입력창이나 드롭다운이 간헐적으로 먹통이 되는(클릭 무시)
