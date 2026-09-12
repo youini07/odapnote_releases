@@ -150,6 +150,7 @@ ipcMain.handle('analyze-pdf', async (event, filePath: string, type: 'student' | 
         analyzedAt: new Date().toISOString(),
         totalQuestions: 0,
         status: 'analyzing' as const,
+        analyzeEndPage: analyzeEndPage, // 새 분석 시 사용자가 지정한 끝 페이지 저장
       };
     } else {
       // 이어서 분석
@@ -157,6 +158,11 @@ ipcMain.handle('analyze-pdf', async (event, filePath: string, type: 'student' | 
       workbook = workbooks.find(w => w.id === wId);
       if (!workbook) throw new Error('이어서 분석할 문제집을 찾을 수 없습니다.');
       workbook.status = 'analyzing' as const;
+      
+      // 이어서 분석 시 프론트엔드에서 analyzeEndPage를 전달하지 않은 경우, 이전에 저장된 값을 복원
+      if (analyzeEndPage === undefined && workbook.analyzeEndPage !== undefined) {
+        analyzeEndPage = workbook.analyzeEndPage;
+      }
     }
     
     database.saveWorkbook(workbook);

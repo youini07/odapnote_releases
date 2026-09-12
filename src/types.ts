@@ -86,6 +86,7 @@ export interface Workbook {
   totalQuestions: number;
   status?: 'analyzing' | 'paused' | 'completed' | 'error';
   lastAnalyzedPage?: number;
+  analyzeEndPage?: number; // 사용자가 설정했던 분석 끝 페이지
   folderName?: string; // 분류를 위한 폴더명 커스텀 지원
 }
 

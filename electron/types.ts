@@ -14,6 +14,7 @@ export interface Workbook {
   totalQuestions: number;  // 총 문제 수
   status?: 'analyzing' | 'paused' | 'completed' | 'error'; // 분석 진행 상태
   lastAnalyzedPage?: number; // 마지막으로 분석된 페이지 번호
+  analyzeEndPage?: number; // 사용자가 설정했던 분석 끝 페이지
   folderName?: string;    // 분류 보관용 폴더명
 }
 
