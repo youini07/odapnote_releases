@@ -150,13 +150,13 @@ function normalizeColumnWidths(
     let colRight: number;
     if (i < columns.length - 1) {
       const nextColLeft = Math.min(...columns[i + 1].map(q => q.bbox.x));
-      // AI가 잡은 오른쪽 끝과 다음 단 시작 사이의 중간점을 경계로 사용 (안전 마진)
-      const midPoint = (maxAiRight + nextColLeft) / 2;
-      // AI가 잡은 오른쪽 끝보다 좁아지지 않도록 보장하되, 다음 단은 침범하지 않음
-      colRight = Math.min(Math.max(maxAiRight, midPoint), nextColLeft - 0.005);
+      // [수정] AI 영역과 다음 단의 중간점을 쓰지 않고, 다음 단이 시작하기 직전(0.5% 여백)까지 가로 영역을 최대로 확보하여 우측 글씨 잘림 완벽 방지
+      colRight = nextColLeft - 0.005;
+      // 만약 AI가 이미 다음 단을 넘어서 크게 잡았다면 최소한 AI가 잡은 만큼은 보장하되 겹침 방지
+      colRight = Math.max(colRight, Math.min(maxAiRight, nextColLeft - 0.001));
     } else {
-      // 마지막 단: AI가 잡은 오른쪽 끝에 약간의 여유를 더함 (오른쪽 잘림 방지)
-      colRight = Math.min(maxAiRight + 0.02, 1.0);
+      // 마지막 단: AI가 잡은 오른쪽 끝에 기존(2%)보다 더 넉넉한 여유(5%)를 더함
+      colRight = Math.min(maxAiRight + 0.05, 1.0);
     }
 
     // 단 전체 너비
