@@ -547,6 +547,9 @@ export async function createPdfIndex(
         wb.totalQuestions = allQuestions.length;
         saveWorkbook(wb);
       }
+      
+      // [신규 로직] 매 페이지 분석이 끝날 때마다 JSON 파일에 바로 저장 (강제 종료/에러 대비 Fail-Safe)
+      saveQuestions(workbookId, allQuestions);
     } catch (e) {
       console.error(`[Phase1] ${pageCounter}페이지 DB 저장 실패:`, e);
     }

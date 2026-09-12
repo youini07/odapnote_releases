@@ -174,7 +174,14 @@ ipcMain.handle('analyze-pdf', async (event, filePath: string, type: 'student' | 
     try {
       questions = await createPdfIndex(workbook.filePath, wId, workbook.type, onProgress, startNumber, analyzeStartPage, analyzeEndPage, wId);
     } catch (e) {
-      if (!existingWorkbookId) database.deleteWorkbook(wId);
+      console.error('[Analyze Error]', e);
+      // 에러 발생 시 삭제하지 않고 일시정지(paused) 상태로 두어 이어서 분석이 가능하게 함
+      const workbooksAfter = database.getWorkbooks();
+      const erroredWorkbook = workbooksAfter.find(w => w.id === wId);
+      if (erroredWorkbook) {
+        erroredWorkbook.status = 'paused';
+        database.saveWorkbook(erroredWorkbook);
+      }
       delete activeAnalyses[wId];
       throw e;
     }
