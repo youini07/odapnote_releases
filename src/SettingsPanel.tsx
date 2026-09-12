@@ -2,7 +2,7 @@
 // SettingsPanel.tsx - 설정 탭
 // ================================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Settings, HardDrive, FileText, Printer, RefreshCw, CheckCircle2, AlertCircle, Lock, Folder, KeyRound, UserCircle } from 'lucide-react';
 import type { AppSettings } from './types';
 import { ChangePasswordModal } from './ChangePasswordModal';
@@ -13,6 +13,7 @@ interface SettingsPanelProps {
 
 export default function SettingsPanel({ token }: SettingsPanelProps) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const originalSettingsRef = useRef<AppSettings | null>(null);
   const [appVersion, setAppVersion] = useState<string>('로딩 중...');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -21,6 +22,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
   useEffect(() => {
     window.electronAPI.getAppSettings().then(s => {
       setSettings(s);
+      originalSettingsRef.current = s;
       if (s.academyLogoPath) {
         window.electronAPI.readImageAsBase64(s.academyLogoPath).then(setLogoPreviewUrl);
       }
@@ -31,6 +33,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
   const handleSave = async () => {
     if (!settings) return;
     await window.electronAPI.saveAppSettings(settings);
+    originalSettingsRef.current = settings;
     setSaveMsg('설정이 저장되었습니다.');
     setTimeout(() => setSaveMsg(null), 3000);
   };
@@ -135,9 +138,23 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                 <button 
                   onClick={() => {
                     const isEnabled = settings.isWorkbookLockEnabled || false;
+                    const original = originalSettingsRef.current;
+                    
+                    if (isEnabled && original?.isWorkbookLockEnabled) {
+                      // 이미 잠겨있는 상태에서 해제할 때 비밀번호 확인
+                      const pass = window.prompt("잠금을 해제하려면 현재 접근 비밀번호를 입력하세요.");
+                      if (pass === null) return; // 취소 누름
+                      if (pass !== original.workbookTabPassword) {
+                        alert("비밀번호가 일치하지 않습니다.");
+                        return;
+                      }
+                    }
+                    
                     setSettings({ 
                       ...settings, 
-                      isWorkbookLockEnabled: !isEnabled 
+                      isWorkbookLockEnabled: !isEnabled,
+                      // 해제 시 비밀번호도 초기화
+                      workbookTabPassword: isEnabled ? '' : settings.workbookTabPassword
                     });
                   }}
                   className={`w-11 h-6 rounded-full transition-colors relative ${settings.isWorkbookLockEnabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
@@ -149,15 +166,32 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
               {settings.isWorkbookLockEnabled && (
                 <div className="space-y-2 animate-fade-in border-t border-slate-800 pt-3">
                   <label className="block text-xs text-slate-400 font-medium">접근 비밀번호 (숫자 권장)</label>
-                  <input
-                    type="password"
-                    value={settings.workbookTabPassword || ''}
-                    onChange={(e) => setSettings({ ...settings, workbookTabPassword: e.target.value })}
-                    placeholder="비밀번호 설정..."
-                    className="w-full px-4 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      value={settings.workbookTabPassword || ''}
+                      onChange={(e) => {
+                        const original = originalSettingsRef.current;
+                        // 이미 저장된 잠금 비밀번호가 있는데 변경하려고 할 때 검증
+                        if (original?.isWorkbookLockEnabled && original?.workbookTabPassword) {
+                          const pass = window.prompt("비밀번호를 변경하려면 기존 비밀번호를 먼저 입력하세요.");
+                          if (pass === null) return;
+                          if (pass !== original.workbookTabPassword) {
+                            alert("비밀번호가 일치하지 않습니다.");
+                            return;
+                          }
+                          // 검증 통과 시 오리지널 상태를 풀어주어 연속 입력이 가능하도록 함
+                          originalSettingsRef.current = { ...original, workbookTabPassword: '' };
+                        }
+                        setSettings({ ...settings, workbookTabPassword: e.target.value });
+                      }}
+                      placeholder="비밀번호 설정..."
+                      className="flex-1 px-4 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                    />
+                  </div>
                   <p className="text-[10px] text-amber-400/80 pt-1">
-                    * 주의: 이 비밀번호를 잊어버리면 문제집 탭에 접근할 수 없습니다. (비밀번호 분실 시 재설치 후 설정 초기화 필요)
+                    * 설정 변경 후 우측 상단의 <b>[전체 설정 저장]</b> 버튼을 꼭 눌러주세요.<br/>
+                    * 주의: 이 비밀번호를 잊어버리면 문제집 탭에 접근할 수 없습니다.
                   </p>
                 </div>
               )}
