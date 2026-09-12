@@ -42,7 +42,6 @@
   "dependencies": {
     "@google/genai": "^1.0.0",
     "archiver": "^7.0.1",
-    "dommatrix": "^0.1.1",
     "electron-updater": "^6.8.9",
     "path2d-polyfill": "^3.2.3",
     "pdf-to-img": "^4.2.0",

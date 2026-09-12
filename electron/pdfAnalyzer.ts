@@ -8,7 +8,7 @@
 // ================================================================
 
 import { Path2D } from 'path2d';
-import DOMMatrix from 'dommatrix';
+import { DOMMatrix } from 'canvas';
 
 if (typeof global !== 'undefined') {
   if (!(global as any).Path2D) {
