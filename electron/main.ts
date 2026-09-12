@@ -32,6 +32,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
+      backgroundThrottling: false,
     },
   });
 
@@ -46,8 +47,11 @@ function createWindow() {
 }
 
 // Windows에서 텍스트 입력창이나 드롭다운이 간헐적으로 먹통이 되는(클릭 무시)
-// Chromium 하드웨어 가속 버그를 방지하기 위해 가속 비활성화
+// Chromium 하드웨어 가속 및 GPU 렌더링 완전 비활성화 (더 강력한 조치)
 app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('disable-software-rasterizer');
 
 const gotTheLock = app.requestSingleInstanceLock();
 
