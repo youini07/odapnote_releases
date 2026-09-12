@@ -232,6 +232,28 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                   </div>
                 </div>
 
+                {/* 고속 스캔(병렬 처리) 모드 */}
+                <div className="pt-2 border-t border-slate-700/50 mt-4">
+                  <label className="block text-xs text-slate-400 mb-1.5 font-medium flex items-center justify-between">
+                    <span>고속 스캔 (동시 분석 페이지 수)</span>
+                    <span className="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">유료 API 권장</span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+                    한 번에 여러 페이지를 동시에 분석하여 속도를 획기적으로 높입니다.<br/>
+                    (주의: 구글 무료 티어 사용 시 3~5개로 설정하면 오류가 발생할 수 있습니다.)
+                  </p>
+                  <select
+                    value={settings.concurrentScanLimit || 1}
+                    onChange={(e) => setSettings({ ...settings, concurrentScanLimit: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                  >
+                    <option value={1}>1페이지씩 (기본, 가장 안전함)</option>
+                    <option value={2}>2페이지 동시 분석 (2배속)</option>
+                    <option value={3}>3페이지 동시 분석 (3배속)</option>
+                    <option value={5}>5페이지 동시 분석 (5배속 - 유료 전용)</option>
+                  </select>
+                </div>
+
                 {/* 학원 커스텀 로고 */}
                 <div className="pt-5 border-t border-slate-700/50">
                   <label className="block text-xs text-slate-400 mb-1.5 font-medium">

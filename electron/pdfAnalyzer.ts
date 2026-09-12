@@ -463,98 +463,117 @@ export async function createPdfIndex(
   let pageCounter = 0;
   const totalPages = document.length || 100;
   let isAborted = false;
-  
+  const chunkLimit = settings.concurrentScanLimit || 1;
+  let currentChunk: Array<{ buffer: Buffer; pageCounter: number }> = [];
+
+  const processChunk = async (chunk: Array<{ buffer: Buffer; pageCounter: number }>) => {
+    const promises = chunk.map(async ({ buffer, pageCounter }) => {
+      const token = cancelToken || workbookId;
+      if (activeAnalyses[token]?.abort) return [];
+      
+      const percent = Math.floor((pageCounter / totalPages) * 85);
+      onProgress(`[1/2] PDF ${pageCounter}/${totalPages}페이지 분석 및 이미지 크롭 중...`, percent);
+      
+      const pageImgPath = path.join(tempDir, `page_${pageCounter}.png`);
+      fs.writeFileSync(pageImgPath, buffer);
+      const metadata = await sharp(pageImgPath).metadata();
+      const pageWidth = metadata.width || 0;
+      const pageHeight = metadata.height || 0;
+
+      pageDataMap.set(pageCounter, { imgPath: pageImgPath, width: pageWidth, height: pageHeight });
+
+      let pageQuestions: Question[] = [];
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        if (activeAnalyses[token]?.abort) break;
+
+        try {
+          const extraHints = retryCount > 0 ? 
+            "[주의] 이전 분석에서 문제를 하나도 찾지 못했습니다. 이 페이지에는 문제가 존재할 가능성이 높습니다. 엄격한 규칙을 조금 완화하여, 약간 흐릿하거나 형태가 독특하더라도 문제 번호로 보이는 것을 최대한 추출해 보세요." 
+            : undefined;
+            
+          pageQuestions = await analyzeAndCropPage(
+            ai, pageImgPath, pageCounter, pageWidth, pageHeight, workbookId, typeLabel, extraHints, startNumber
+          );
+          
+          if (pageQuestions.length > 0) {
+            break; 
+          } else {
+            console.warn(`[Retry] p.${pageCounter}에서 문제를 찾지 못함. 재시도 중... (${retryCount + 1}/${maxRetries})`);
+          }
+        } catch (err: any) {
+          console.error(`[Error] p.${pageCounter} 분석 실패. 재시도 중... (${retryCount + 1}/${maxRetries})`, err.message);
+        }
+        
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+
+      if (!activeAnalyses[token]?.abort && pageQuestions.length === 0) {
+        console.error(`[Critical] p.${pageCounter} 분석 3회 재시도 모두 실패 또는 문제 없음으로 판정됨.`);
+      }
+      return pageQuestions;
+    });
+
+    const results = await Promise.all(promises);
+    for (const res of results) {
+      allQuestions.push(...res);
+    }
+    
+    try {
+      const workbooks = getWorkbooks();
+      const wb = workbooks.find(w => w.id === workbookId);
+      if (wb) {
+        wb.lastAnalyzedPage = chunk[chunk.length - 1].pageCounter;
+        wb.totalQuestions = allQuestions.length;
+        saveWorkbook(wb);
+      }
+      saveQuestions(workbookId, allQuestions);
+    } catch (e) {
+      console.error(`[Phase1] Chunk DB 저장 실패:`, e);
+    }
+  };
+
   for await (const pageImageBuffer of document) {
     pageCounter++;
     
-    // 이미 분석된 페이지이거나 사용자가 지정한 시작 페이지 이전이면 건너뛰기
     if (pageCounter < startPage || (analyzeStartPage !== undefined && pageCounter < analyzeStartPage)) {
       continue;
     }
 
-    // 사용자가 지정한 끝 페이지를 넘어가면 분석 종료
     if (analyzeEndPage !== undefined && pageCounter > analyzeEndPage) {
       console.log(`[Limit] 지정된 분석 끝 페이지(${analyzeEndPage})에 도달하여 분석을 종료합니다.`);
       break;
     }
     
-    const percent = Math.floor((pageCounter / totalPages) * 85);
-    
     const token = cancelToken || workbookId;
-    // 중지 여부 확인
     if (activeAnalyses[token]?.abort) {
       console.log(`[Cancel] 분석 중단 요청 감지됨. (현재 페이지: ${pageCounter})`);
-      onProgress('분석이 일시 중지되었습니다.', percent);
+      onProgress('분석이 일시 중지되었습니다.', Math.floor((pageCounter / totalPages) * 85));
       isAborted = true;
       break;
     }
 
-    onProgress(`[1/2] PDF ${pageCounter}/${totalPages}페이지 분석 및 이미지 크롭 중...`, percent);
-    
-    const pageImgPath = path.join(tempDir, `page_${pageCounter}.png`);
-    fs.writeFileSync(pageImgPath, pageImageBuffer);
-    const metadata = await sharp(pageImgPath).metadata();
-    const pageWidth = metadata.width || 0;
-    const pageHeight = metadata.height || 0;
+    currentChunk.push({ buffer: pageImageBuffer, pageCounter });
 
-    pageDataMap.set(pageCounter, { imgPath: pageImgPath, width: pageWidth, height: pageHeight });
-
-    let pageQuestions: Question[] = [];
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    while (retryCount < maxRetries) {
-      // 취소 토큰 확인
-      if (activeAnalyses[token]?.abort) break;
-
-      try {
-        const extraHints = retryCount > 0 ? 
-          "[주의] 이전 분석에서 문제를 하나도 찾지 못했습니다. 이 페이지에는 문제가 존재할 가능성이 높습니다. 엄격한 규칙을 조금 완화하여, 약간 흐릿하거나 형태가 독특하더라도 문제 번호로 보이는 것을 최대한 추출해 보세요." 
-          : undefined;
-          
-        pageQuestions = await analyzeAndCropPage(
-          ai, pageImgPath, pageCounter, pageWidth, pageHeight, workbookId, typeLabel, extraHints, startNumber
-        );
-        
-        if (pageQuestions.length > 0) {
-          break; // 정상적으로 문제를 하나라도 찾으면 루프 탈출
-        } else {
-          console.warn(`[Retry] p.${pageCounter}에서 문제를 찾지 못함. 재시도 중... (${retryCount + 1}/${maxRetries})`);
-        }
-      } catch (err: any) {
-        console.error(`[Error] p.${pageCounter} 분석 실패. 재시도 중... (${retryCount + 1}/${maxRetries})`, err.message);
-      }
+    if (currentChunk.length >= chunkLimit) {
+      await processChunk(currentChunk);
+      currentChunk = [];
+      await delay(1500); // AI Rate Limit 방지를 위한 대기
       
-      retryCount++;
-      if (retryCount < maxRetries) {
-        // API Rate Limit 방지를 위해 3초 대기 후 재시도
-        await new Promise(resolve => setTimeout(resolve, 3000));
+      if (activeAnalyses[token]?.abort) {
+        isAborted = true;
+        break;
       }
     }
+  }
 
-    if (!activeAnalyses[token]?.abort && pageQuestions.length === 0) {
-      console.error(`[Critical] p.${pageCounter} 분석 3회 재시도 모두 실패 또는 문제 없음으로 판정됨.`);
-    }
-
-    allQuestions.push(...pageQuestions);
-      
-    // 진행 상태 실시간 DB 저장 (중지/재시작 대비)
-    try {
-      const workbooks = getWorkbooks();
-      const wb = workbooks.find(w => w.id === workbookId);
-      if (wb) {
-        wb.lastAnalyzedPage = pageCounter;
-        wb.totalQuestions = allQuestions.length;
-        saveWorkbook(wb);
-      }
-      
-      // [신규 로직] 매 페이지 분석이 끝날 때마다 JSON 파일에 바로 저장 (강제 종료/에러 대비 Fail-Safe)
-      saveQuestions(workbookId, allQuestions);
-    } catch (e) {
-      console.error(`[Phase1] ${pageCounter}페이지 DB 저장 실패:`, e);
-    }
-
-    // AI Rate Limit 방지를 위한 대기
+  if (currentChunk.length > 0 && !isAborted) {
+    await processChunk(currentChunk);
     await delay(1500);
   }
   

@@ -131,4 +131,5 @@ export interface AppSettings {
   questionsPerPage: number;
   dataPath: string;
   customStorageDir?: string;
+  concurrentScanLimit?: number; // 동시 분석 페이지 수 (기본 1)
 }
