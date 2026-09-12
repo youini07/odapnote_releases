@@ -95,6 +95,7 @@ export interface AppSettings {
   questionsPerPage: number; // 페이지당 문제 수 (기본: 4)
   dataPath: string;        // 데이터 저장 경로
   customStorageDir?: string; // 사용자 지정 저장 경로
+  concurrentScanLimit?: number; // 동시 분석 페이지 수 (기본 1)
 }
 
 /** Electron API */
