@@ -304,14 +304,14 @@ export default function WorkbookPanel() {
           PDF 문제집 분석
         </h2>
 
-        <div className="flex items-end gap-4">
+        <div className="flex flex-wrap items-end gap-4">
           {/* 문제집 유형 선택 */}
           <div>
             <label className="block text-xs text-slate-400 mb-1.5 font-medium">문제집 유형</label>
             <div className="flex gap-2">
               <button
                 onClick={() => setSelectedType('student')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                   selectedType === 'student'
                     ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                     : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white'
@@ -321,7 +321,7 @@ export default function WorkbookPanel() {
               </button>
               <button
                 onClick={() => setSelectedType('teacher')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                   selectedType === 'teacher'
                     ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
                     : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white'
@@ -401,7 +401,7 @@ export default function WorkbookPanel() {
             <button
               onClick={handleAnalyzePdf}
               disabled={!selectedFile}
-              className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
             >
               <Search size={16} />
               분석 시작
