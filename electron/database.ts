@@ -343,11 +343,13 @@ export function rescanQuestionImages(workbookId: string): { success: boolean, ad
     for (const file of files) {
       if (file.toLowerCase().endsWith('.png')) {
         let basename = path.basename(file, '.png');
+        let pageNum = 1;
         
-        // P008_0018.png 와 같이 페이지 접두사가 붙은 경우 제거하여 순수 문제 번호만 추출
-        const match = basename.match(/^P\d+_(.+)$/i);
+        // P008_0018.png 와 같이 페이지 접두사가 붙은 경우 분리 추출
+        const match = basename.match(/^P(\d+)_(.+)$/i);
         if (match) {
-          basename = match[1];
+          pageNum = parseInt(match[1], 10);
+          basename = match[2];
         }
         
         const num = normalizeNumber(basename);
@@ -361,7 +363,7 @@ export function rescanQuestionImages(workbookId: string): { success: boolean, ad
           questions.push({
             id: `q_manual_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
             number: num,
-            page: 1,
+            page: pageNum,
             imagePath: path.join(dir, file),
             textContent: '',
             workbookId: workbookId,
@@ -471,16 +473,18 @@ export function scanUnregisteredFolders(): { success: boolean, addedWorkbooks: n
         const questions: Question[] = [];
         for (const file of imageFiles) {
           let basename = path.basename(file, '.png');
-          const match = basename.match(/^P\d+_(.+)$/i);
+          let pageNum = 1;
+          const match = basename.match(/^P(\d+)_(.+)$/i);
           if (match) {
-            basename = match[1];
+            pageNum = parseInt(match[1], 10);
+            basename = match[2];
           }
           const num = normalizeNumber(basename);
           
           questions.push({
             id: `q_sync_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
             number: num,
-            page: 1,
+            page: pageNum,
             imagePath: path.join(newFullPath, file),
             textContent: '',
             workbookId: newWbId,
