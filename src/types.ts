@@ -20,7 +20,8 @@ export interface ElectronAPI {
   pairWorkbooks: (studentId: string, teacherId: string) => Promise<boolean>;
   getQuestions: (workbookId: string) => Promise<Question[]>;
   rescanWorkbookImages: (workbookId: string) => Promise<{ success: boolean, addedCount: number, error?: string }>;
-  deleteQuestions: (workbookId: string, questionIds: string[]) => Promise<{ success: boolean, error?: string }>;
+  scanUnregisteredFolders: () => Promise<{ success: boolean; addedWorkbooks: number; error?: string }>;
+  deleteQuestions: (workbookId: string, questionIds: string[]) => Promise<{ success: boolean; error?: string }>;
 
   // 학생 관리
   getStudents: () => Promise<Student[]>;

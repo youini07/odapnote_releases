@@ -277,6 +277,11 @@ ipcMain.handle('rescan-workbook-images', (event, workbookId: string) => {
   return database.rescanQuestionImages(workbookId);
 });
 
+/** 외부 미등록 폴더 스캔 및 연동 */
+ipcMain.handle('scan-unregistered-folders', () => {
+  return database.scanUnregisteredFolders();
+});
+
 /** 문제 삭제 */
 ipcMain.handle('delete-questions', (event, workbookId: string, questionIds: string[]) => {
   return database.deleteQuestions(workbookId, questionIds);

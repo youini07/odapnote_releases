@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** 특정 문제집의 문제 목록 조회 */
   getQuestions: (workbookId: string) => ipcRenderer.invoke('get-questions', workbookId),
   rescanWorkbookImages: (workbookId: string) => ipcRenderer.invoke('rescan-workbook-images', workbookId),
+  scanUnregisteredFolders: () => ipcRenderer.invoke('scan-unregistered-folders'),
   deleteQuestions: (workbookId: string, questionIds: string[]) => ipcRenderer.invoke('delete-questions', workbookId, questionIds),
 
   // ====== 학생 관리 ======

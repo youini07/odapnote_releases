@@ -397,3 +397,119 @@ export function rescanQuestionImages(workbookId: string): { success: boolean, ad
     return { success: false, error: error.message, addedCount: 0 };
   }
 }
+
+/**
+ * 외부에서 복사해온 이미지 폴더 스캔 및 자동 등록
+ */
+export function scanUnregisteredFolders(): { success: boolean, addedWorkbooks: number, error?: string } {
+  try {
+    const imagesDir = path.join(getDataDir(), 'images');
+    if (!fs.existsSync(imagesDir)) {
+      return { success: true, addedWorkbooks: 0 };
+    }
+
+    const workbooks = getWorkbooks();
+    // 현재 등록된 문제집들이 사용하는 폴더명/경로 목록 수집
+    const registeredDirs = new Set<string>();
+    for (const wb of workbooks) {
+      // getQuestionsImageDir(wb.id)의 폴더명 추출
+      const safeName = wb.name.replace(/[\\/:*?"<>|]/g, '_');
+      const shortId = wb.id.split('_').pop() || wb.id.substring(0, 6);
+      registeredDirs.add(`${safeName}_${shortId}`);
+      registeredDirs.add(wb.id); // 구버전 폴더명 대비
+    }
+
+    const allDirs = fs.readdirSync(imagesDir, { withFileTypes: true });
+    let addedWorkbooks = 0;
+
+    for (const dirent of allDirs) {
+      if (!dirent.isDirectory()) continue;
+      
+      const folderName = dirent.name;
+      if (!registeredDirs.has(folderName)) {
+        // 미등록 폴더 발견!
+        const fullPath = path.join(imagesDir, folderName);
+        
+        // 안에 이미지가 하나라도 있는지 확인
+        const files = fs.readdirSync(fullPath);
+        const imageFiles = files.filter(f => f.toLowerCase().endsWith('.png'));
+        
+        if (imageFiles.length === 0) continue; // 빈 폴더 무시
+
+        // 폴더명 기반으로 이름 추출 (예: '수학의정석_1a2b3c' -> '수학의정석')
+        let wbName = folderName;
+        const lastUnderscore = folderName.lastIndexOf('_');
+        if (lastUnderscore > 0) {
+          wbName = folderName.substring(0, lastUnderscore);
+        }
+
+        const newWbId = `wb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        
+        const newWb: Workbook = {
+          id: newWbId,
+          name: wbName,
+          fileName: folderName, // 원본 파일명 대신 폴더명 기록
+          filePath: fullPath,
+          type: 'student', // 기본적으로 학생용으로 등록
+          folderName: '외부 연동 문제집', // UI에서 식별하기 쉽도록 폴더 지정
+          analyzedAt: new Date().toISOString(),
+          totalQuestions: 0,
+          status: 'completed',
+        };
+
+        // 폴더명 변경 (새로운 ID 체계에 맞게)
+        const safeName = newWb.name.replace(/[\\/:*?"<>|]/g, '_');
+        const shortId = newWbId.split('_').pop() || newWbId.substring(0, 6);
+        const newFolderName = `${safeName}_${shortId}`;
+        const newFullPath = path.join(imagesDir, newFolderName);
+        
+        if (fullPath !== newFullPath) {
+          fs.renameSync(fullPath, newFullPath);
+        }
+
+        // 문제 데이터 생성
+        const questions: Question[] = [];
+        for (const file of imageFiles) {
+          let basename = path.basename(file, '.png');
+          const match = basename.match(/^P\d+_(.+)$/i);
+          if (match) {
+            basename = match[1];
+          }
+          const num = normalizeNumber(basename);
+          
+          questions.push({
+            id: `q_sync_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+            number: num,
+            page: 1,
+            imagePath: path.join(newFullPath, file),
+            textContent: '',
+            workbookId: newWbId,
+            type: '미분류',
+            bbox: { x: 0, y: 0, width: 0, height: 0 }
+          });
+        }
+        
+        // 정렬
+        questions.sort((a, b) => {
+           const numA = parseInt(a.number, 10);
+           const numB = parseInt(b.number, 10);
+           if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+           return a.number.localeCompare(b.number);
+        });
+
+        newWb.totalQuestions = questions.length;
+        
+        // 저장
+        saveQuestions(newWbId, questions);
+        saveWorkbook(newWb);
+        addedWorkbooks++;
+      }
+    }
+
+    return { success: true, addedWorkbooks };
+  } catch (error: any) {
+    console.error('[DB] 미등록 폴더 스캔 실패:', error);
+    return { success: false, addedWorkbooks: 0, error: error.message };
+  }
+}
+

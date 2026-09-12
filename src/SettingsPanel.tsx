@@ -234,7 +234,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
             <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Folder size={14} className="text-amber-400" />
-                데이터 저장 경로
+                데이터 저장 경로 및 폴더 스캔
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -248,11 +248,37 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                     폴더 변경
                   </button>
                 </div>
+                
+                <div className="pt-2">
+                  <button
+                    onClick={async () => {
+                      setSaveMsg('외부 폴더 스캔 중...');
+                      const res = await window.electronAPI.scanUnregisteredFolders();
+                      if (res.success) {
+                        if (res.addedWorkbooks > 0) {
+                          alert(`스캔 완료: ${res.addedWorkbooks}개의 새로운 폴더를 감지하여 문제집으로 등록했습니다.\n'문제집 관리' 탭에서 확인하세요.`);
+                        } else {
+                          alert('새롭게 감지된 미등록 폴더가 없습니다.');
+                        }
+                        setSaveMsg(null);
+                      } else {
+                        alert(`스캔 실패: ${res.error}`);
+                        setSaveMsg(null);
+                      }
+                    }}
+                    className="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <RefreshCw size={14} />
+                    미등록 외부 폴더 스캔 및 연동
+                  </button>
+                </div>
+
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mt-3">
                   <div className="flex gap-2">
                     <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
                     <div className="text-xs text-amber-200/80 leading-relaxed">
-                      <strong>주의:</strong> 경로를 변경하면 프로그램은 변경된 새 경로에서 데이터를 찾습니다. 기존 작업물을 유지하려면 윈도우 탐색기에서 예전 데이터를 새 폴더로 직접 옮겨주세요.
+                      <strong>주의:</strong> 경로를 변경하면 프로그램은 변경된 새 경로에서 데이터를 찾습니다. 기존 작업물을 유지하려면 윈도우 탐색기에서 예전 데이터를 새 폴더로 직접 옮겨주세요.<br/>
+                      <strong>외부 폴더 복사 후:</strong> 다른 PC에서 가져온 이미지 폴더를 복사해 넣은 뒤, <b>[미등록 외부 폴더 스캔 및 연동]</b> 버튼을 눌러야 프로그램에 등록됩니다.
                     </div>
                   </div>
                 </div>
