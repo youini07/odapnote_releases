@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Users, FileText, Settings, GraduationCap, ShieldAlert, LogOut } from 'lucide-react';
 import WorkbookPanel from './WorkbookPanel';
+import WorkbookLockGuard from './WorkbookLockGuard';
 import StudentPanel from './StudentPanel';
 import OdapNotePanel from './OdapNotePanel';
 import SettingsPanel from './SettingsPanel';
@@ -38,6 +39,7 @@ export default function App() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   
   const [activeTab, setActiveTab] = useState<TabId>('workbooks');
+  const [isWorkbookUnlocked, setIsWorkbookUnlocked] = useState(false);
 
   const handleLoginSuccess = (token: string, user: string, role: string, expires_at?: string) => {
     setAuthToken(token);
@@ -92,6 +94,7 @@ export default function App() {
       setAuthToken('');
       setUsername('');
       setUserRole('user');
+      setIsWorkbookUnlocked(false);
     }
   };
 
@@ -223,7 +226,12 @@ export default function App() {
 
         {/* 컨텐츠 영역 */}
         <main className="flex-1 overflow-y-auto bg-slate-950">
-          {activeTab === 'workbooks' && <WorkbookPanel />}
+          {activeTab === 'workbooks' && (
+            <WorkbookLockGuard 
+              isUnlocked={isWorkbookUnlocked} 
+              onUnlock={() => setIsWorkbookUnlocked(true)} 
+            />
+          )}
           {activeTab === 'students' && <StudentPanel />}
           {activeTab === 'odapnote' && <OdapNotePanel />}
           {activeTab === 'settings' && <SettingsPanel token={authToken} />}

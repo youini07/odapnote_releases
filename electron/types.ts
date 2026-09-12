@@ -97,6 +97,8 @@ export interface AppSettings {
   dataPath: string;        // 데이터 저장 경로
   customStorageDir?: string; // 사용자 지정 저장 경로
   concurrentScanLimit?: number; // 동시 분석 페이지 수 (기본 1)
+  isWorkbookLockEnabled?: boolean; // 문제집 관리 탭 잠금 여부
+  workbookTabPassword?: string; // 문제집 관리 탭 잠금 비밀번호
 }
 
 /** Electron API */

@@ -120,6 +120,49 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
               </button>
             </div>
 
+            {/* 문제집 관리 탭 접근 보안 */}
+            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <Lock size={14} className="text-red-400" />
+                문제집 관리 탭 잠금
+              </h3>
+              <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+                공용 컴퓨터 사용 시, 실수로 문제집이 삭제되거나 API 비용이 발생하는 것을 방지하기 위해 탭 접근을 제한합니다.
+              </p>
+              
+              <div className="flex items-center justify-between mb-4 bg-slate-950/50 p-3 rounded-lg border border-slate-700/50">
+                <span className="text-sm text-slate-300 font-medium">잠금 기능 사용</span>
+                <button 
+                  onClick={() => {
+                    const isEnabled = settings.isWorkbookLockEnabled || false;
+                    setSettings({ 
+                      ...settings, 
+                      isWorkbookLockEnabled: !isEnabled 
+                    });
+                  }}
+                  className={`w-11 h-6 rounded-full transition-colors relative ${settings.isWorkbookLockEnabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                >
+                  <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${settings.isWorkbookLockEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              
+              {settings.isWorkbookLockEnabled && (
+                <div className="space-y-2 animate-fade-in border-t border-slate-800 pt-3">
+                  <label className="block text-xs text-slate-400 font-medium">접근 비밀번호 (숫자 권장)</label>
+                  <input
+                    type="password"
+                    value={settings.workbookTabPassword || ''}
+                    onChange={(e) => setSettings({ ...settings, workbookTabPassword: e.target.value })}
+                    placeholder="비밀번호 설정..."
+                    className="w-full px-4 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                  />
+                  <p className="text-[10px] text-amber-400/80 pt-1">
+                    * 주의: 이 비밀번호를 잊어버리면 문제집 탭에 접근할 수 없습니다. (비밀번호 분실 시 재설치 후 설정 초기화 필요)
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* API 키 설정 */}
             <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">

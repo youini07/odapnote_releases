@@ -133,4 +133,6 @@ export interface AppSettings {
   dataPath: string;
   customStorageDir?: string;
   concurrentScanLimit?: number; // 동시 분석 페이지 수 (기본 1)
+  isWorkbookLockEnabled?: boolean; // 문제집 관리 탭 잠금 여부
+  workbookTabPassword?: string; // 문제집 관리 탭 잠금 비밀번호
 }
