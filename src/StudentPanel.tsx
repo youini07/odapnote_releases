@@ -1,4 +1,4 @@
-// ================================================================
+﻿// ================================================================
 // StudentPanel.tsx - 학생 관리 탭
 // 학생 등록/수정/삭제 + 오답노트 제공 기록 관리
 // ================================================================
@@ -90,14 +90,14 @@ export default function StudentPanel() {
       {/* 왼쪽: 학생 목록 */}
       <div className="w-80 shrink-0 flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Users size={20} className="text-emerald-400" />
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Users size={20} className="text-indigo-600" />
             학생 목록
             <span className="text-sm text-slate-500 font-normal">({students.length})</span>
           </h2>
           <button
             onClick={() => { setShowAddModal(true); setNewName(''); setNewAffiliation(''); setNewSchoolName(''); setNewGrade(''); }}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 shadow-lg shadow-indigo-500/20"
           >
             <UserPlus size={14} />
             추가
@@ -112,24 +112,24 @@ export default function StudentPanel() {
               className={`
                 group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all
                 ${selectedStudentId === student.id
-                  ? 'bg-emerald-500/10 border border-emerald-500/20'
-                  : 'bg-slate-900/50 border border-slate-700/30 hover:bg-slate-800/50'
+                  ? 'bg-indigo-500/10 border border-indigo-500/20'
+                  : 'bg-white/50 border border-slate-200/30 hover:bg-slate-50'
                 }
               `}
             >
               {/* 아바타 */}
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
                 selectedStudentId === student.id
-                  ? 'bg-emerald-500/20 text-emerald-400'
-                  : 'bg-slate-700/50 text-slate-400'
+                  ? 'bg-indigo-500/20 text-indigo-600'
+                  : 'bg-slate-200/50 text-slate-500'
               }`}>
                 {student.name[0]}
               </div>
               
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-white truncate">{student.name}</div>
+                <div className="text-sm font-semibold text-slate-800 truncate">{student.name}</div>
                 <div className="text-[10px] text-slate-500 flex items-center gap-2">
-                  {student.affiliation && <span className="font-medium text-emerald-400">{student.affiliation}</span>}
+                  {student.affiliation && <span className="font-medium text-indigo-600">{student.affiliation}</span>}
                   {student.schoolName && <span>{student.schoolName}</span>}
                   {student.grade && <span>{student.grade}</span>}
                   {/* 하위 호환성 지원: affiliation, schoolName, grade 모두 없는데 memo가 있는 경우 */}
@@ -166,14 +166,14 @@ export default function StudentPanel() {
       </div>
 
       {/* 오른쪽: 선택된 학생의 오답노트 기록 */}
-      <div className="flex-1 bg-slate-900/50 rounded-xl border border-slate-700/50 p-5 overflow-y-auto">
+      <div className="flex-1 bg-white/50 rounded-xl border border-slate-200 p-5 overflow-y-auto">
         {selectedStudent ? (
           <>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold text-white">{selectedStudent.name}</h3>
+                <h3 className="text-lg font-bold text-slate-800">{selectedStudent.name}</h3>
                 <p className="text-xs text-slate-500">
-                  {selectedStudent.affiliation && <span className="text-emerald-400 font-medium mr-1">{selectedStudent.affiliation}</span>}
+                  {selectedStudent.affiliation && <span className="text-indigo-600 font-medium mr-1">{selectedStudent.affiliation}</span>}
                   {selectedStudent.schoolName && <span className="mr-1">{selectedStudent.schoolName}</span>}
                   {selectedStudent.grade && <span className="mr-1">{selectedStudent.grade}</span>}
                   {selectedStudent.memo && !selectedStudent.affiliation && !selectedStudent.schoolName && !selectedStudent.grade && <span className="mr-1">{selectedStudent.memo}</span>}
@@ -182,7 +182,7 @@ export default function StudentPanel() {
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-emerald-400">{selectedStudent.odapNotes.length}</div>
+                <div className="text-2xl font-bold text-indigo-600">{selectedStudent.odapNotes.length}</div>
                 <div className="text-[10px] text-slate-500">오답노트 기록</div>
               </div>
             </div>
@@ -211,14 +211,14 @@ export default function StudentPanel() {
       {/* 학생 추가/수정 모달 */}
       {(showAddModal || editingStudent) && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 w-96 p-6 shadow-2xl">
+          <div className="bg-slate-50 rounded-xl border border-slate-200 w-96 p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-white">
+              <h3 className="font-bold text-slate-800">
                 {editingStudent ? '학생 정보 수정' : '새 학생 등록'}
               </h3>
               <button
                 onClick={() => { setShowAddModal(false); setEditingStudent(null); }}
-                className="p-1 text-slate-400 hover:text-white rounded"
+                className="p-1 text-slate-500 hover:text-slate-800 rounded"
               >
                 <X size={18} />
               </button>
@@ -226,46 +226,46 @@ export default function StudentPanel() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">이름 *</label>
+                <label className="block text-xs text-slate-500 mb-1">이름 *</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="학생 이름"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && (editingStudent ? handleEditStudent() : handleAddStudent())}
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1">소속 (학원/반)</label>
+                <label className="block text-xs text-slate-500 mb-1">소속 (학원/반)</label>
                 <input
                   type="text"
                   value={newAffiliation}
                   onChange={(e) => setNewAffiliation(e.target.value)}
                   placeholder="예: 강남본원 A반"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">학교명</label>
+                  <label className="block text-xs text-slate-500 mb-1">학교명</label>
                   <input
                     type="text"
                     value={newSchoolName}
                     onChange={(e) => setNewSchoolName(e.target.value)}
                     placeholder="예: 대치고등학교"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">학년</label>
+                  <label className="block text-xs text-slate-500 mb-1">학년</label>
                   <input
                     type="text"
                     value={newGrade}
                     onChange={(e) => setNewGrade(e.target.value)}
                     placeholder="예: 1학년"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
                   />
                 </div>
               </div>
@@ -274,14 +274,14 @@ export default function StudentPanel() {
             <div className="flex justify-end gap-2 mt-5">
               <button
                 onClick={() => { setShowAddModal(false); setEditingStudent(null); }}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm text-slate-500 hover:text-slate-800 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={editingStudent ? handleEditStudent : handleAddStudent}
                 disabled={!newName.trim()}
-                className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Save size={14} />
                 {editingStudent ? '수정' : '등록'}
@@ -329,12 +329,12 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
   };
 
   return (
-    <div className="bg-slate-800/60 rounded-lg border border-slate-700/30 px-4 py-3 flex items-center gap-3">
-      <div className="w-8 h-8 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0">
-        <FileText size={16} className="text-emerald-400" />
+    <div className="bg-slate-50/60 rounded-lg border border-slate-200/30 px-4 py-3 flex items-center gap-3">
+      <div className="w-8 h-8 rounded-md bg-indigo-500/10 flex items-center justify-center shrink-0">
+        <FileText size={16} className="text-indigo-600" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-white truncate">{record.name}</div>
+        <div className="text-sm font-medium text-slate-800 truncate">{record.name}</div>
         <div className="flex items-center gap-3 text-[10px] text-slate-500 mt-0.5">
           <span className="flex items-center gap-1">
             <Calendar size={9} />
@@ -356,7 +356,7 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
             <select
               value={layout}
               onChange={(e) => setLayout(Number(e.target.value))}
-              className="px-2 py-1 mr-1 bg-slate-700/50 border border-slate-600 rounded text-xs text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
+              className="px-2 py-1 mr-1 bg-slate-200/50 border border-slate-300 rounded text-xs text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
             >
               <option value={4}>2×2</option>
               <option value={6}>2×3</option>
@@ -371,7 +371,7 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
             </button>
             <button
               onClick={handleOpenFolder}
-              className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors"
+              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-500/10 rounded-md transition-colors"
               title="폴더 열기"
             >
               <FolderOpen size={14} />

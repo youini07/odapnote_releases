@@ -1,4 +1,4 @@
-// ================================================================
+﻿// ================================================================
 // OdapNotePanel.tsx - 오답노트 생성 탭 (핵심 기능)
 // 학생 선택 → 문제집 선택 → 문제번호 입력 → 오답노트 생성/출력
 // ================================================================
@@ -30,8 +30,8 @@ function PageSearchInput({ onSearch }: { onSearch: (page: number) => void }) {
   };
 
   return (
-    <div className="flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
-      <Search size={14} className="text-slate-400" />
+    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+      <Search size={14} className="text-slate-500" />
       <input
         type="text"
         inputMode="numeric"
@@ -39,11 +39,11 @@ function PageSearchInput({ onSearch }: { onSearch: (page: number) => void }) {
         onChange={(e) => setVal(e.target.value.replace(/[^0-9]/g, ''))}
         onKeyDown={handleKeyDown}
         placeholder="페이지 이동 (예: 46)"
-        className="bg-transparent border-none text-sm text-white focus:outline-none w-32 placeholder-slate-500"
+        className="bg-transparent border-none text-sm text-slate-800 focus:outline-none w-32 placeholder-slate-500"
       />
       <button
         onClick={handleSearch}
-        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition-colors"
+        className="px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded text-xs text-slate-700 font-medium transition-colors"
       >
         이동
       </button>
@@ -237,16 +237,16 @@ export default function OdapNotePanel() {
   return (
     <div className="p-6 space-y-6 h-full overflow-y-auto">
       {/* 상단: 입력 영역 */}
-      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-6">
-        <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-          <FileText size={20} className="text-emerald-400" />
+      <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
+          <FileText size={20} className="text-indigo-600" />
           오답노트 생성
         </h2>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           {/* 학생 선택 */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium flex items-center gap-1">
+            <label className="block text-xs text-slate-500 mb-1.5 font-medium flex items-center gap-1">
               <User size={12} />
               학생 선택
             </label>
@@ -260,7 +260,7 @@ export default function OdapNotePanel() {
 
           {/* 문제집 선택 */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium flex items-center gap-1">
+            <label className="block text-xs text-slate-500 mb-1.5 font-medium flex items-center gap-1">
               <BookOpen size={12} />
               문제집 선택
             </label>
@@ -275,7 +275,7 @@ export default function OdapNotePanel() {
 
         {/* 문제번호 입력 */}
         <div className="mb-4">
-          <label className="block text-xs text-slate-400 mb-1.5 font-medium">
+          <label className="block text-xs text-slate-500 mb-1.5 font-medium">
             문제번호 입력 (쉼표로 구분)
           </label>
           <div className="flex gap-2">
@@ -284,12 +284,12 @@ export default function OdapNotePanel() {
               value={questionNumbersInput}
               onChange={(e) => setQuestionNumbersInput(e.target.value)}
               placeholder="예: 11, 19, 5, 102, 140, 350"
-              className="flex-1 px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors font-mono"
+              className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors font-mono"
             />
             <button
               onClick={handlePreview}
               disabled={!selectedWorkbookId || inputNumbers.length === 0}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40"
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40"
             >
               <Eye size={14} />
               미리보기
@@ -314,12 +314,12 @@ export default function OdapNotePanel() {
 
         {/* 옵션 + 생성 버튼 */}
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={includeAnswers}
               onChange={(e) => setIncludeAnswers(e.target.checked)}
-              className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-emerald-500 focus:ring-emerald-500"
+              className="w-4 h-4 rounded bg-slate-50 border-slate-300 text-indigo-500 focus:ring-indigo-500"
             />
             답안지도 함께 생성
           </label>
@@ -327,7 +327,7 @@ export default function OdapNotePanel() {
           <button
             onClick={handleGenerate}
             disabled={isGenerating || !selectedStudentId || !selectedWorkbookId || inputNumbers.length === 0}
-            className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-lg shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
           >
             {isGenerating ? (
               <>
@@ -346,7 +346,7 @@ export default function OdapNotePanel() {
         {/* 오답노트 이름 미리보기 */}
         {selectedStudent && selectedWorkbook && (
           <div className="mt-3 text-xs text-slate-500">
-            생성될 파일명: <span className="text-emerald-400 font-mono">{selectedWorkbook.name}_{selectedStudent.name}.pdf</span>
+            생성될 파일명: <span className="text-indigo-600 font-mono">{selectedWorkbook.name}_{selectedStudent.name}.pdf</span>
           </div>
         )}
       </div>
@@ -355,21 +355,21 @@ export default function OdapNotePanel() {
       {result && (
         <div className={`rounded-xl border p-4 flex items-start gap-3 ${
           result.success
-            ? 'bg-emerald-500/10 border-emerald-500/30'
+            ? 'bg-indigo-500/10 border-indigo-500/30'
             : 'bg-red-500/10 border-red-500/30'
         }`}>
           {result.success ? (
-            <CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 size={20} className="text-indigo-600 shrink-0 mt-0.5" />
           ) : (
             <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
           )}
           <div className="flex-1">
             {result.success ? (
               <>
-                <div className="text-sm font-semibold text-emerald-300 mb-1">
+                <div className="text-sm font-semibold text-indigo-600 mb-1">
                   오답노트가 성공적으로 생성되었습니다!
                 </div>
-                <div className="text-xs text-emerald-500/80">
+                <div className="text-xs text-indigo-500/80">
                   {result.name}
                 </div>
               </>
@@ -386,14 +386,14 @@ export default function OdapNotePanel() {
                 <>
                   <button
                     onClick={() => window.electronAPI.openExternal(result.notePath!)}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg flex items-center gap-1 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg flex items-center gap-1 transition-colors"
                   >
                     <Download size={12} />
                     열기
                   </button>
                   <button
                     onClick={() => window.electronAPI.printOdapNote(result.notePath!)}
-                    className="px-3 py-1.5 text-xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg flex items-center gap-1 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg flex items-center gap-1 transition-colors"
                   >
                     <Printer size={12} />
                     프린트
@@ -416,16 +416,16 @@ export default function OdapNotePanel() {
 
       {/* 미리보기 영역 (2×2 그리드) */}
       {previewQuestions.length > 0 && (
-        <div className="bg-slate-900/60 rounded-xl border border-slate-700/50 p-5">
+        <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
               <Eye size={16} className="text-blue-400" />
               오답노트 미리보기
               <span className="text-slate-500 font-normal">({previewQuestions.length}문제)</span>
             </h3>
             <button
               onClick={() => { setPreviewQuestions([]); setPreviewImages({}); }}
-              className="p-1 text-slate-500 hover:text-white rounded"
+              className="p-1 text-slate-500 hover:text-slate-800 rounded"
             >
               <X size={16} />
             </button>
@@ -484,17 +484,17 @@ export default function OdapNotePanel() {
 
       {/* 전체 문제 갤러리 뷰 */}
       {selectedWorkbookId && allQuestions.length > 0 && (
-        <div className="bg-slate-900/60 rounded-xl border border-slate-700/50 p-5 mt-6">
+        <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5 mt-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <BookOpen size={16} className="text-emerald-400" />
+            <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <BookOpen size={16} className="text-indigo-600" />
               전체 문제 갤러리
               <span className="text-slate-500 font-normal">({allQuestions.length}문제)</span>
             </h3>
             <PageSearchInput onSearch={scrollToPage} />
           </div>
           
-          <div className="text-[11px] text-emerald-500 bg-emerald-500/10 px-3 py-2 rounded mb-4 inline-block">
+          <div className="text-[11px] text-indigo-500 bg-indigo-500/10 px-3 py-2 rounded mb-4 inline-block">
             문제를 클릭하면 오답노트 문제번호에 자동으로 추가/취소됩니다.
           </div>
 
@@ -508,24 +508,24 @@ export default function OdapNotePanel() {
                 <div 
                   key={q.id} 
                   id={`gallery-q-${q.id}`}
-                  className={`relative bg-slate-800/80 rounded-md p-2 border transition-all cursor-pointer group ${
+                  className={`relative bg-slate-50 rounded-md p-2 border transition-all cursor-pointer group ${
                     isSelected 
-                      ? 'border-emerald-500/50 ring-1 ring-emerald-500/50 bg-emerald-500/10' 
-                      : 'border-slate-700/30 hover:border-emerald-400/50'
+                      ? 'border-indigo-500/50 ring-1 ring-indigo-500/50 bg-indigo-500/10' 
+                      : 'border-slate-200/30 hover:border-indigo-600/50'
                   }`}
                   onClick={() => toggleQuestionSelection(q.number)}
                 >
                   <div className="absolute top-2 right-2 z-10">
                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
-                      isSelected ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600 bg-slate-800/50'
+                      isSelected ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300 bg-slate-50'
                     }`}>
-                      {isSelected && <CheckCircle2 size={12} className="text-white" />}
+                      {isSelected && <CheckCircle2 size={12} className="text-slate-800" />}
                     </div>
                   </div>
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between mb-1 pr-6">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-bold text-emerald-400">#{q.number.replace(/^P\d+[_ \-]/, '')}</span>
+                        <span className="text-[10px] font-bold text-indigo-600">#{q.number.replace(/^P\d+[_ \-]/, '')}</span>
                         <span className="text-[9px] text-slate-500">p.{q.page}</span>
                       </div>
                     </div>
@@ -536,7 +536,7 @@ export default function OdapNotePanel() {
                         className="w-full h-20 object-contain bg-white/90 rounded group-hover:brightness-95 transition-all"
                       />
                     ) : (
-                      <div className="w-full h-20 bg-slate-700/50 rounded flex items-center justify-center">
+                      <div className="w-full h-20 bg-slate-100 rounded flex items-center justify-center">
                         <Image size={16} className="text-slate-600" />
                       </div>
                     )}
@@ -598,22 +598,22 @@ function SearchableDropdown({
   return (
     <div className="relative w-full" ref={wrapperRef}>
       <div 
-        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm flex items-center justify-between cursor-pointer focus:outline-none focus:border-emerald-500 transition-colors"
+        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm flex items-center justify-between cursor-pointer focus:outline-none focus:border-indigo-500 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className={selectedOption ? 'text-white' : 'text-slate-400'}>
+        <span className={selectedOption ? 'text-slate-800' : 'text-slate-500'}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown size={14} className="text-slate-400" />
+        <ChevronDown size={14} className="text-slate-500" />
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden max-h-[300px] flex flex-col">
-          <div className="p-2 border-b border-slate-700 shrink-0">
+        <div className="absolute z-50 w-full mt-1 bg-slate-50 border border-slate-200 rounded-lg shadow-xl overflow-hidden max-h-[300px] flex flex-col">
+          <div className="p-2 border-b border-slate-200 shrink-0">
             <input
               type="text"
               placeholder="검색어를 입력하세요..."
-              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+              className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-indigo-500"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               onClick={e => e.stopPropagation()}
@@ -627,13 +627,13 @@ function SearchableDropdown({
               return a.localeCompare(b);
             }).map(group => (
               <div key={group}>
-                <div className="px-3 py-1.5 text-[11px] font-bold text-emerald-500 bg-slate-800/80 uppercase tracking-wider sticky top-0 backdrop-blur-sm z-10 border-b border-slate-700/50">
+                <div className="px-3 py-1.5 text-[11px] font-bold text-indigo-500 bg-slate-50 uppercase tracking-wider sticky top-0 backdrop-blur-sm z-10 border-b border-slate-200">
                   {group}
                 </div>
                 {groups[group].map(opt => (
                   <div
                     key={opt.value}
-                    className={`px-3 py-2.5 text-sm cursor-pointer hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors flex items-center justify-between ${value === opt.value ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300'}`}
+                    className={`px-3 py-2.5 text-sm cursor-pointer hover:bg-indigo-500/10 hover:text-indigo-600 transition-colors flex items-center justify-between ${value === opt.value ? 'bg-indigo-500/20 text-indigo-600' : 'text-slate-600'}`}
                     onClick={() => {
                       onChange(opt.value);
                       setIsOpen(false);
@@ -641,7 +641,7 @@ function SearchableDropdown({
                     }}
                   >
                     <span>{opt.label}</span>
-                    {value === opt.value && <CheckCircle2 size={14} className="text-emerald-400" />}
+                    {value === opt.value && <CheckCircle2 size={14} className="text-indigo-600" />}
                   </div>
                 ))}
               </div>

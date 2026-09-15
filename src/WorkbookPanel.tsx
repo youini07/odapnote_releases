@@ -1,4 +1,4 @@
-// ================================================================
+﻿// ================================================================
 // WorkbookPanel.tsx - 문제집 관리 탭
 // PDF 업로드, AI 분석, 문제집 목록, 학생용↔교사용 매칭
 // ================================================================
@@ -24,8 +24,8 @@ function PageSearchInput({ onSearch }: { onSearch: (page: number) => void }) {
   };
 
   return (
-    <div className="flex items-center gap-2 mb-3 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50 w-fit">
-      <Search size={14} className="text-slate-400" />
+    <div className="flex items-center gap-2 mb-3 bg-slate-50 p-2 rounded-lg border border-slate-200 w-fit">
+      <Search size={14} className="text-slate-500" />
       <input
         type="text"
         inputMode="numeric"
@@ -33,11 +33,11 @@ function PageSearchInput({ onSearch }: { onSearch: (page: number) => void }) {
         onChange={(e) => setVal(e.target.value.replace(/[^0-9]/g, ''))}
         onKeyDown={handleKeyDown}
         placeholder="페이지 이동 (예: 46)"
-        className="bg-transparent border-none text-sm text-white focus:outline-none w-32 placeholder-slate-500"
+        className="bg-transparent border-none text-sm text-slate-800 focus:outline-none w-32 placeholder-slate-500"
       />
       <button
         onClick={handleSearch}
-        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition-colors"
+        className="px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded text-xs text-slate-700 font-medium transition-colors"
       >
         이동
       </button>
@@ -288,15 +288,15 @@ export default function WorkbookPanel() {
 
     return (
       <div>
-        <h3 className="text-sm font-semibold text-slate-400 mb-2 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-slate-500 mb-2 flex items-center gap-2">
           {icon}
           {title} ({workbooksToRender.length})
         </h3>
         <div className="space-y-4">
           {folders.map(folder => (
-            <div key={folder} className="bg-slate-900/40 rounded-lg p-3 border border-slate-700/30">
-              <div className="text-xs font-bold text-slate-300 mb-2 flex items-center gap-1.5 px-1">
-                <FolderOpen size={14} className={folder === '미분류' ? 'text-slate-500' : 'text-emerald-500'} />
+            <div key={folder} className="bg-white/40 rounded-lg p-3 border border-slate-200/30">
+              <div className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1.5 px-1">
+                <FolderOpen size={14} className={folder === '미분류' ? 'text-slate-500' : 'text-indigo-500'} />
                 {folder}
                 <span className="text-slate-500 font-normal ml-1">({groups[folder].length})</span>
               </div>
@@ -339,23 +339,23 @@ export default function WorkbookPanel() {
   return (
     <div className="p-6 space-y-6">
       {/* 상단: PDF 업로드 영역 */}
-      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-6">
-        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          <Upload size={20} className="text-emerald-400" />
+      <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Upload size={20} className="text-indigo-600" />
           PDF 문제집 분석
         </h2>
 
         <div className="flex flex-wrap items-end gap-4">
           {/* 문제집 유형 선택 */}
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">문제집 유형</label>
+            <label className="block text-xs text-slate-500 mb-1.5 font-medium">문제집 유형</label>
             <div className="flex gap-2">
               <button
                 onClick={() => setSelectedType('student')}
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                   selectedType === 'student'
                     ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white'
+                    : 'bg-slate-50 text-slate-500 border border-slate-200 hover:text-slate-800'
                 }`}
               >
                 📘 학생용 (문제)
@@ -365,7 +365,7 @@ export default function WorkbookPanel() {
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                   selectedType === 'teacher'
                     ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white'
+                    : 'bg-slate-50 text-slate-500 border border-slate-200 hover:text-slate-800'
                 }`}
               >
                 📙 교사용 (답안)
@@ -378,7 +378,7 @@ export default function WorkbookPanel() {
           {/* 분석 페이지 범위 (선택) */}
           <div className="flex items-end gap-2">
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5 font-medium">분석 범위 (페이지)</label>
+              <label className="block text-xs text-slate-500 mb-1.5 font-medium">분석 범위 (페이지)</label>
               <div className="flex items-center gap-1.5">
                 <input
                   type="number"
@@ -386,7 +386,7 @@ export default function WorkbookPanel() {
                   value={analyzeStartPage}
                   onChange={(e) => setAnalyzeStartPage(e.target.value)}
                   placeholder="시작"
-                  className="px-3 py-2 text-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-lg placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 w-20 text-center"
+                  className="px-3 py-2 text-sm bg-slate-50 text-slate-700 border border-slate-200 rounded-lg placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 w-20 text-center"
                 />
                 <span className="text-slate-500">~</span>
                 <input
@@ -395,7 +395,7 @@ export default function WorkbookPanel() {
                   value={analyzeEndPage}
                   onChange={(e) => setAnalyzeEndPage(e.target.value)}
                   placeholder="끝"
-                  className="px-3 py-2 text-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-lg placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 w-20 text-center"
+                  className="px-3 py-2 text-sm bg-slate-50 text-slate-700 border border-slate-200 rounded-lg placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 w-20 text-center"
                 />
               </div>
             </div>
@@ -403,13 +403,13 @@ export default function WorkbookPanel() {
           {/* 폴더명 (선택) */}
           <div className="flex items-end gap-2">
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5 font-medium">분류 폴더명 (선택)</label>
+              <label className="block text-xs text-slate-500 mb-1.5 font-medium">분류 폴더명 (선택)</label>
               <input
                 type="text"
                 value={uploadFolderName}
                 onChange={(e) => setUploadFolderName(e.target.value)}
                 placeholder="예: 고1 수학"
-                className="px-3 py-2 text-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-lg placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 w-32"
+                className="px-3 py-2 text-sm bg-slate-50 text-slate-700 border border-slate-200 rounded-lg placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 w-32"
               />
             </div>
           </div>
@@ -417,10 +417,10 @@ export default function WorkbookPanel() {
           <div className="flex gap-2 items-end">
             {/* 파일 첨부 버튼 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-slate-400 font-medium">문제집 파일</label>
+              <label className="text-xs text-slate-500 font-medium">문제집 파일</label>
               <button
                 onClick={handleSelectFile}
-                className="px-4 py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 max-w-[200px]"
+                className="px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 max-w-[200px]"
                 title={selectedFile || 'PDF 파일 선택'}
               >
                 <Upload size={16} className="text-blue-400" />
@@ -432,7 +432,7 @@ export default function WorkbookPanel() {
             <button
               onClick={handleAnalyzePdf}
               disabled={!selectedFile}
-              className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+              className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-lg shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
             >
               <Search size={16} />
               분석 시작
@@ -460,14 +460,14 @@ export default function WorkbookPanel() {
       {/* 삭제 확인 모달 */}
       {workbookToDelete && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 max-w-md w-full shadow-2xl">
             <div className="flex items-center gap-3 text-red-400 mb-4">
               <AlertCircle size={24} />
-              <h3 className="text-lg font-bold text-white">문제집 삭제 경고</h3>
+              <h3 className="text-lg font-bold text-slate-800">문제집 삭제 경고</h3>
             </div>
             
-            <p className="text-sm text-slate-300 mb-2">
-              <span className="font-bold text-white">{workbookToDelete.name}</span> 문제집을 정말로 삭제하시겠습니까?
+            <p className="text-sm text-slate-600 mb-2">
+              <span className="font-bold text-slate-800">{workbookToDelete.name}</span> 문제집을 정말로 삭제하시겠습니까?
             </p>
             <p className="text-xs text-red-400/90 bg-red-500/10 border border-red-500/20 p-3 rounded-lg mb-5 leading-relaxed">
               사전에 추출된 <strong>모든 문제 이미지 파일들이 함께 영구 삭제</strong>되며, 복구할 수 없습니다. 계속 진행하시려면 아래에 <strong>'삭제'</strong>라고 입력해 주세요.
@@ -478,21 +478,21 @@ export default function WorkbookPanel() {
               value={deleteInput}
               onChange={(e) => setDeleteInput(e.target.value)}
               placeholder="삭제"
-              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white mb-5 focus:outline-none focus:border-red-500 transition-colors"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 mb-5 focus:outline-none focus:border-red-500 transition-colors"
               autoFocus
             />
 
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setWorkbookToDelete(null)}
-                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 취소
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleteInput.trim() !== '삭제'}
-                className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-bold text-slate-800 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 영구 삭제
               </button>
@@ -587,20 +587,20 @@ function WorkbookCard({
   };
 
   return (
-    <div className={`bg-slate-900/60 rounded-lg border transition-all ${
+    <div className={`bg-white shadow-sm border border-slate-100 rounded-lg border transition-all ${
       isPairingTarget 
         ? 'border-yellow-500/50 shadow-lg shadow-yellow-500/10 cursor-pointer' 
-        : 'border-slate-700/50'
+        : 'border-slate-200'
     }`}>
       {/* 카드 헤더 */}
       <div
-        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-800/30 transition-colors"
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50/30 transition-colors"
         onClick={() => isPairingTarget ? onPairWith(workbook.id) : onToggleExpand()}
       >
         <div className={`w-2 h-2 rounded-full bg-${typeColor}-400`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm text-white truncate">{workbook.name}</span>
+            <span className="font-semibold text-sm text-slate-800 truncate">{workbook.name}</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded bg-${typeColor}-500/15 text-${typeColor}-400 font-medium`}>
               {workbook.type === 'student' ? '학생용' : '교사용'}
             </span>
@@ -610,7 +610,7 @@ function WorkbookCard({
               </span>
             )}
             {workbook.status === 'analyzing' && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium border border-emerald-500/20 flex items-center gap-1">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-600 font-medium border border-indigo-500/20 flex items-center gap-1">
                 <Loader2 size={10} className="animate-spin" />
                 {workbook.lastAnalyzedPage ? `분석 중 (${workbook.lastAnalyzedPage}p)` : '분석 준비 중...'}
               </span>
@@ -623,7 +623,7 @@ function WorkbookCard({
             {paired && (
               <>
                 <span>·</span>
-                <span className="flex items-center gap-1 text-emerald-500">
+                <span className="flex items-center gap-1 text-indigo-500">
                   <Link size={10} />
                   {paired.name} 매칭됨
                 </span>
@@ -635,13 +635,13 @@ function WorkbookCard({
         {/* 버튼들 */}
         <div className="flex items-center gap-1 shrink-0">
           {isEditingFolder ? (
-            <div className="flex items-center gap-1 bg-slate-800 rounded p-1" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-1 bg-slate-50 rounded p-1" onClick={e => e.stopPropagation()}>
               <input 
                 type="text" 
                 value={editFolderInput} 
                 onChange={e => setEditFolderInput(e.target.value)} 
                 placeholder="폴더명"
-                className="w-24 px-1.5 py-0.5 text-xs bg-slate-900 border border-slate-700 rounded text-white focus:outline-none"
+                className="w-24 px-1.5 py-0.5 text-xs bg-white border border-slate-200 rounded text-slate-800 focus:outline-none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     onUpdateFolder(editFolderInput);
@@ -652,17 +652,17 @@ function WorkbookCard({
                 }}
                 autoFocus
               />
-              <button onClick={() => { onUpdateFolder(editFolderInput); setIsEditingFolder(false); }} className="p-1 text-emerald-400 hover:bg-emerald-500/20 rounded">
+              <button onClick={() => { onUpdateFolder(editFolderInput); setIsEditingFolder(false); }} className="p-1 text-indigo-600 hover:bg-indigo-500/20 rounded">
                 <Save size={12} />
               </button>
-              <button onClick={() => setIsEditingFolder(false)} className="p-1 text-slate-400 hover:bg-slate-700 rounded">
+              <button onClick={() => setIsEditingFolder(false)} className="p-1 text-slate-500 hover:bg-slate-100 rounded">
                 <X size={12} />
               </button>
             </div>
           ) : (
             <button
               onClick={(e) => { e.stopPropagation(); setEditFolderInput(workbook.folderName || ''); setIsEditingFolder(true); }}
-              className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors"
+              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-500/10 rounded-md transition-colors"
               title="폴더명 수정"
             >
               <FolderOpen size={14} />
@@ -689,7 +689,7 @@ function WorkbookCard({
           {workbook.status !== 'completed' && !pairingMode && workbook.status !== 'analyzing' && (
             <button
               onClick={(e) => { e.stopPropagation(); onResumeAnalysis(); }}
-              className="px-2 py-1 text-[11px] text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded border border-emerald-500/30 transition-colors"
+              className="px-2 py-1 text-[11px] text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 rounded border border-indigo-500/30 transition-colors"
             >
               이어서 분석
             </button>
@@ -716,16 +716,16 @@ function WorkbookCard({
       {/* 진행 상황 바 (카드 내부) */}
       {workbook.status === 'analyzing' && jobProgress && (
         <div className="px-4 pb-3">
-          <div className="flex justify-between text-[10px] text-slate-400 mb-1.5">
+          <div className="flex justify-between text-[10px] text-slate-500 mb-1.5">
             <span className="flex items-center gap-1">
-              <Loader2 size={10} className="animate-spin text-emerald-400" />
+              <Loader2 size={10} className="animate-spin text-indigo-600" />
               {jobProgress.message}
             </span>
-            <span className="text-emerald-400 font-medium">{Math.round(jobProgress.percent)}%</span>
+            <span className="text-indigo-600 font-medium">{Math.round(jobProgress.percent)}%</span>
           </div>
-          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-slate-50 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-emerald-600 to-teal-500 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 transition-all duration-500"
               style={{ width: `${jobProgress.percent}%` }}
             />
           </div>
@@ -800,7 +800,7 @@ function WorkbookCard({
                         <RefreshCw size={10} />
                         폴더 수동 스캔
                       </button>
-                      <span className="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+                      <span className="text-[10px] text-indigo-500 bg-indigo-500/10 px-2 py-1 rounded">
                         이미지를 클릭하면 그림판에서 수정할 수 있습니다
                       </span>
                     </div>
@@ -831,10 +831,10 @@ function WorkbookCard({
               <div 
                 key={q.id} 
                 id={`wb-${workbook.id}-q-${q.id}`}
-                className={`relative bg-slate-800/80 rounded-md p-2 border transition-all group ${
+                className={`relative bg-slate-50 rounded-md p-2 border transition-all group ${
                   selectedIds.has(q.id) 
                     ? 'border-red-500/50 ring-1 ring-red-500/20' 
-                    : 'border-slate-700/30 hover:border-emerald-400 hover:ring-2 hover:ring-emerald-400/20'
+                    : 'border-slate-200/30 hover:border-indigo-600 hover:ring-2 hover:ring-indigo-600/20'
                 }`}
               >
                 <div className="absolute top-2 right-2 z-10">
@@ -842,7 +842,7 @@ function WorkbookCard({
                     type="checkbox"
                     checked={selectedIds.has(q.id)}
                     onChange={() => toggleSelect(q.id)}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-red-500/50 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 bg-slate-50 text-red-500 focus:ring-red-500/50 cursor-pointer"
                   />
                 </div>
                 <div 
@@ -863,7 +863,7 @@ function WorkbookCard({
                       className="w-full h-20 object-contain bg-white/90 rounded group-hover:brightness-95 transition-all"
                     />
                   ) : (
-                    <div className="w-full h-20 bg-slate-700/50 rounded flex items-center justify-center">
+                    <div className="w-full h-20 bg-slate-100 rounded flex items-center justify-center">
                       <Image size={16} className="text-slate-600" />
                     </div>
                   )}

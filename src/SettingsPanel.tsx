@@ -1,4 +1,4 @@
-// ================================================================
+﻿// ================================================================
 // SettingsPanel.tsx - 설정 탭
 // ================================================================
 
@@ -88,13 +88,13 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
     <div className="p-6 h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Settings size={20} className="text-emerald-400" />
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Settings size={20} className="text-indigo-600" />
             설정
           </h2>
           <button
             onClick={handleSave}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-emerald-900/20 transition-all active:scale-95 flex items-center gap-2"
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-emerald-900/20 transition-all active:scale-95 flex items-center gap-2"
           >
             <CheckCircle2 size={16} />
             전체 설정 저장
@@ -106,35 +106,35 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
           <div className="space-y-6">
             
             {/* 개인 계정 설정 */}
-            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <UserCircle size={14} className="text-blue-400" />
                 개인 계정 설정
               </h3>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
                 발급받은 초기 라이선스 비밀번호를 본인만의 안전한 비밀번호로 변경할 수 있습니다.
               </p>
               <button
                 onClick={() => setIsPasswordModalOpen(true)}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 text-sm font-medium transition-colors flex items-center gap-2"
+                className="px-4 py-2.5 bg-slate-50 hover:bg-white border border-slate-200 rounded-lg text-slate-600 text-sm font-medium transition-colors flex items-center gap-2"
               >
-                <KeyRound size={16} className="text-emerald-500" />
+                <KeyRound size={16} className="text-indigo-500" />
                 내 비밀번호 변경
               </button>
             </div>
 
             {/* 문제집 관리 탭 접근 보안 */}
-            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <Lock size={14} className="text-red-400" />
                 문제집 관리 탭 잠금
               </h3>
-              <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+              <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
                 공용 컴퓨터 사용 시, 실수로 문제집이 삭제되거나 API 비용이 발생하는 것을 방지하기 위해 탭 접근을 제한합니다.
               </p>
               
-              <div className="flex items-center justify-between mb-4 bg-slate-950/50 p-3 rounded-lg border border-slate-700/50">
-                <span className="text-sm text-slate-300 font-medium">잠금 기능 사용</span>
+              <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-lg border border-slate-200">
+                <span className="text-sm text-slate-600 font-medium">잠금 기능 사용</span>
                 <button 
                   onClick={() => {
                     const isEnabled = settings.isWorkbookLockEnabled || false;
@@ -157,7 +157,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                       workbookTabPassword: isEnabled ? '' : settings.workbookTabPassword
                     });
                   }}
-                  className={`w-11 h-6 rounded-full transition-colors relative ${settings.isWorkbookLockEnabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                  className={`w-11 h-6 rounded-full transition-colors relative ${settings.isWorkbookLockEnabled ? 'bg-indigo-500' : 'bg-slate-300'}`}
                 >
                   <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${settings.isWorkbookLockEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
@@ -165,7 +165,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
               
               {settings.isWorkbookLockEnabled && (
                 <div className="space-y-2 animate-fade-in border-t border-slate-800 pt-3">
-                  <label className="block text-xs text-slate-400 font-medium">접근 비밀번호 (숫자 권장)</label>
+                  <label className="block text-xs text-slate-500 font-medium">접근 비밀번호 (숫자 권장)</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="password"
@@ -186,7 +186,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                         setSettings({ ...settings, workbookTabPassword: e.target.value });
                       }}
                       placeholder="비밀번호 설정..."
-                      className="flex-1 px-4 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                     />
                   </div>
                   <p className="text-[10px] text-amber-400/80 pt-1">
@@ -198,8 +198,8 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
             </div>
 
             {/* API 키 설정 */}
-            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
                 <Lock size={14} className="text-yellow-400" />
                 Gemini AI API 키
               </h3>
@@ -209,13 +209,13 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                   value={settings.geminiApiKey}
                   onChange={(e) => setSettings({ ...settings, geminiApiKey: e.target.value })}
                   placeholder="AIzaSy..."
-                  className="w-full px-4 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                  className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                 />
                 <div className="flex items-center gap-2 px-1">
                   {settings.geminiApiKey ? (
                     <>
-                      <CheckCircle2 size={14} className="text-emerald-400" />
-                      <span className="text-xs text-emerald-400">API 키가 입력되어 있습니다.</span>
+                      <CheckCircle2 size={14} className="text-indigo-600" />
+                      <span className="text-xs text-indigo-600">API 키가 입력되어 있습니다.</span>
                     </>
                   ) : (
                     <>
@@ -225,25 +225,25 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                   )}
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 mt-4 bg-slate-800/50 p-2 rounded">
+              <p className="text-[11px] text-slate-500 mt-4 bg-slate-50 p-2 rounded">
                 * Google AI Studio에서 발급받은 Gemini API 키를 입력하세요.
               </p>
             </div>
 
             {/* 데이터 저장 경로 */}
-            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <Folder size={14} className="text-amber-400" />
                 데이터 저장 경로 및 폴더 스캔
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 px-4 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-slate-300 text-sm font-mono truncate shadow-inner" title={settings.customStorageDir || settings.dataPath}>
+                  <div className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-600 text-sm font-mono truncate shadow-inner" title={settings.customStorageDir || settings.dataPath}>
                     {settings.customStorageDir || settings.dataPath}
                   </div>
                   <button
                     onClick={handleSelectStorageDir}
-                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                    className="px-4 py-2.5 bg-slate-50 hover:bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
                   >
                     폴더 변경
                   </button>
@@ -291,8 +291,8 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
           <div className="space-y-6">
             
             {/* 출력 설정 */}
-            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <Printer size={14} className="text-blue-400" />
                 출력 설정
               </h3>
@@ -302,7 +302,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                 <div className="grid grid-cols-2 gap-4">
                   {/* 용지 크기 */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-2 font-medium">용지 크기</label>
+                    <label className="block text-xs text-slate-500 mb-2 font-medium">용지 크기</label>
                     <div className="flex gap-2">
                       {(['A4', 'B4'] as const).map(size => (
                         <button
@@ -311,7 +311,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                           className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                             settings.paperSize === size
                               ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-inner'
-                              : 'bg-slate-950/50 text-slate-400 border border-slate-700/50 hover:text-white hover:bg-slate-800'
+                              : 'bg-white text-slate-500 border border-slate-200 hover:text-slate-800 hover:bg-slate-50'
                           }`}
                         >
                           {size}
@@ -322,11 +322,11 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
 
                   {/* 페이지당 문제 수 */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-2 font-medium">페이지당 문제 수</label>
+                    <label className="block text-xs text-slate-500 mb-2 font-medium">페이지당 문제 수</label>
                     <select
                       value={settings.questionsPerPage}
                       onChange={(e) => setSettings({ ...settings, questionsPerPage: parseInt(e.target.value) })}
-                      className="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                     >
                       <option value={2}>2문제 (1×2)</option>
                       <option value={4}>4문제 (2×2)</option>
@@ -336,8 +336,8 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                 </div>
 
                 {/* 고속 스캔(병렬 처리) 모드 */}
-                <div className="pt-2 border-t border-slate-700/50 mt-4">
-                  <label className="block text-xs text-slate-400 mb-1.5 font-medium flex items-center justify-between">
+                <div className="pt-2 border-t border-slate-200 mt-4">
+                  <label className="block text-xs text-slate-500 mb-1.5 font-medium flex items-center justify-between">
                     <span>고속 스캔 (동시 분석 페이지 수)</span>
                     <span className="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">유료 API 권장</span>
                   </label>
@@ -348,7 +348,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                   <select
                     value={settings.concurrentScanLimit || 1}
                     onChange={(e) => setSettings({ ...settings, concurrentScanLimit: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                   >
                     <option value={1}>1페이지씩 (기본, 가장 안전함)</option>
                     <option value={2}>2페이지 동시 분석 (2배속)</option>
@@ -358,18 +358,18 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                 </div>
 
                 {/* 학원 커스텀 로고 */}
-                <div className="pt-5 border-t border-slate-700/50">
-                  <label className="block text-xs text-slate-400 mb-1.5 font-medium">
+                <div className="pt-5 border-t border-slate-200">
+                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">
                     학원 전용 로고 / 전화번호 이미지
                   </label>
-                  <p className="text-[11px] text-slate-500 mb-4 bg-slate-800/50 p-2 rounded leading-relaxed">
+                  <p className="text-[11px] text-slate-500 mb-4 bg-slate-50 p-2 rounded leading-relaxed">
                     * 추천 사이즈: 가로 250px × 세로 50px (비율 5:1)<br/>투명 배경의 PNG 파일을 권장합니다. 출력 시 PDF 헤더 우측 상단에 고정 출력됩니다.
                   </p>
                   
                   <div className="flex items-center gap-3 mb-3">
                     <button
                       onClick={handleSelectLogo}
-                      className="px-4 py-2 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm"
+                      className="px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-white text-slate-700 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm"
                     >
                       <Folder size={14} className="text-blue-400" />
                       이미지 파일 찾기
@@ -385,7 +385,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                     )}
                   </div>
 
-                  <div className="w-full min-h-[80px] bg-slate-950/50 border border-slate-700/50 rounded-lg flex items-center justify-center p-4 relative overflow-hidden group">
+                  <div className="w-full min-h-[80px] bg-white border border-slate-200 rounded-lg flex items-center justify-center p-4 relative overflow-hidden group">
                     {logoPreviewUrl ? (
                       <img src={logoPreviewUrl} alt="로고 미리보기" className="h-[40px] max-w-full object-contain" />
                     ) : (
@@ -403,17 +403,17 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
             </div>
 
             {/* 데이터 & 앱 정보 */}
-            <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <HardDrive size={14} className="text-purple-400" />
                 앱 정보
               </h3>
-              <div className="space-y-3 text-sm bg-slate-950/50 rounded-lg p-4 border border-slate-700/50">
-                <div className="flex justify-between items-center text-slate-400 border-b border-slate-800 pb-2">
+              <div className="space-y-3 text-sm bg-white rounded-lg p-4 border border-slate-200">
+                <div className="flex justify-between items-center text-slate-500 border-b border-slate-800 pb-2">
                   <span>앱 버전</span>
-                  <span className="text-white font-mono bg-slate-800 px-2 py-0.5 rounded">{appVersion}</span>
+                  <span className="text-slate-800 font-mono bg-slate-50 px-2 py-0.5 rounded">{appVersion}</span>
                 </div>
-                <div className="flex justify-between items-center text-slate-400 pt-1">
+                <div className="flex justify-between items-center text-slate-500 pt-1">
                   <span>기본 시스템 경로</span>
                   <span className="text-slate-500 text-[10px] font-mono truncate max-w-[200px]" title={settings.dataPath}>
                     {settings.dataPath}
@@ -422,9 +422,9 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
               </div>
               <button
                 onClick={handleCheckUpdate}
-                className="w-full mt-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+                className="w-full mt-4 py-2.5 bg-slate-50 hover:bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
               >
-                <RefreshCw size={14} className="text-slate-400" />
+                <RefreshCw size={14} className="text-slate-500" />
                 소프트웨어 업데이트 확인
               </button>
             </div>
@@ -435,7 +435,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
 
       {/* 저장 메시지 */}
       {saveMsg && (
-        <div className="fixed bottom-6 right-6 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 shadow-xl text-sm text-emerald-400 flex items-center gap-2 animate-fade-in">
+        <div className="fixed bottom-6 right-6 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 shadow-xl text-sm text-indigo-600 flex items-center gap-2 animate-fade-in">
           <CheckCircle2 size={16} />
           {saveMsg}
         </div>

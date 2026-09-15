@@ -52,12 +52,12 @@ export default function WorkbookLockGuard({ isUnlocked, onUnlock }: Props) {
 
   return (
     <div className="h-full w-full flex items-center justify-center bg-slate-950 p-6 animate-fade-in">
-      <div className="w-full max-w-sm bg-slate-900 border border-slate-700/50 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
-        <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-inner border border-slate-700">
-          <Lock size={28} className="text-emerald-400" />
+      <div className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 shadow-inner border border-slate-200">
+          <Lock size={28} className="text-indigo-600" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">문제집 관리 탭 잠김</h2>
-        <p className="text-sm text-slate-400 text-center mb-8">
+        <h2 className="text-xl font-bold text-slate-800 mb-2">문제집 관리 탭 잠김</h2>
+        <p className="text-sm text-slate-500 text-center mb-8">
           원장님이 설정한 비밀번호를 입력해야 이 페이지에 접근할 수 있습니다.
         </p>
         <form onSubmit={handleUnlock} className="w-full space-y-4">
@@ -71,13 +71,13 @@ export default function WorkbookLockGuard({ isUnlocked, onUnlock }: Props) {
               }}
               placeholder="비밀번호 입력..."
               autoFocus
-              className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-center text-white text-lg tracking-widest focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
+              className="w-full px-4 py-3 bg-slate-950 border border-slate-200 rounded-xl text-center text-slate-800 text-lg tracking-widest focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
             />
             {errorMsg && <p className="text-red-400 text-xs mt-2 text-center">{errorMsg}</p>}
           </div>
           <button 
             type="submit"
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-95"
           >
             잠금 해제
           </button>

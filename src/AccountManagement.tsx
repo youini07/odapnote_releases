@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ShieldAlert, UserPlus, Save, Trash2, Loader2, Calendar, KeyRound, User, X } from 'lucide-react';
 
 interface AppUser {
@@ -138,7 +138,7 @@ export default function AccountManagement({ token }: AccountManagementProps) {
 
   return (
     <div className="p-6 h-full flex flex-col gap-6">
-      <div className="flex items-center gap-3 text-emerald-400 border-b border-slate-800 pb-4 shrink-0">
+      <div className="flex items-center gap-3 text-indigo-600 border-b border-slate-800 pb-4 shrink-0">
         <ShieldAlert size={28} />
         <h1 className="text-2xl font-bold">오답노트 전용 라이선스 관리</h1>
       </div>
@@ -150,26 +150,26 @@ export default function AccountManagement({ token }: AccountManagementProps) {
       )}
 
       {/* 새 계정 생성 폼 */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 shrink-0">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <UserPlus size={18} className="text-emerald-500" /> 신규 라이선스 발급
+      <div className="bg-white/50 border border-slate-800 rounded-xl p-6 shrink-0">
+        <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <UserPlus size={18} className="text-indigo-500" /> 신규 라이선스 발급
         </h2>
         <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-1">
-            <label className="block text-xs text-slate-400 mb-1">아이디</label>
+            <label className="block text-xs text-slate-500 mb-1">아이디</label>
             <input type="text" value={newUsername} onChange={e => setNewUsername(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="w-full bg-slate-950 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 outline-none"
               placeholder="user01" />
           </div>
           <div className="md:col-span-1">
-            <label className="block text-xs text-slate-400 mb-1">초기 비밀번호(키)</label>
+            <label className="block text-xs text-slate-500 mb-1">초기 비밀번호(키)</label>
             <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none"
+              className="w-full bg-slate-950 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 outline-none"
               placeholder="pass1234" />
           </div>
           <div className="md:col-span-2 flex items-end">
             <button type="submit" disabled={isLoading}
-              className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center">
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center">
               {isLoading ? <Loader2 size={16} className="animate-spin" /> : '계정 생성 (기본 30일 부여됨)'}
             </button>
           </div>
@@ -180,18 +180,18 @@ export default function AccountManagement({ token }: AccountManagementProps) {
       </div>
 
       {/* 사용자 목록 */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 flex-1 overflow-hidden flex flex-col">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2 shrink-0">
-          <User size={18} className="text-emerald-500" /> 오답노트 발급 계정 목록
+      <div className="bg-white/50 border border-slate-800 rounded-xl p-6 flex-1 overflow-hidden flex flex-col">
+        <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2 shrink-0">
+          <User size={18} className="text-indigo-500" /> 오답노트 발급 계정 목록
         </h2>
         
         <div className="overflow-y-auto flex-1 pr-2">
           {isLoading && users.length === 0 ? (
-            <div className="flex justify-center py-10"><Loader2 className="animate-spin text-emerald-500" /></div>
+            <div className="flex justify-center py-10"><Loader2 className="animate-spin text-indigo-500" /></div>
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+                <tr className="border-b border-slate-800 text-slate-500 text-xs uppercase tracking-wider">
                   <th className="py-3 px-4">아이디</th>
                   <th className="py-3 px-4">만료일</th>
                   <th className="py-3 px-4 text-right">관리</th>
@@ -209,10 +209,10 @@ export default function AccountManagement({ token }: AccountManagementProps) {
                     const displayUsername = user.username.replace(/^odap_/, '');
                     
                     return (
-                      <tr key={user.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                        <td className="py-3 px-4 font-medium text-slate-200">{displayUsername}</td>
+                      <tr key={user.id} className="border-b border-slate-800/50 hover:bg-slate-50/20 transition-colors">
+                        <td className="py-3 px-4 font-medium text-slate-700">{displayUsername}</td>
                         <td className="py-3 px-4">
-                          <span className={`text-sm ${isExpired ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
+                          <span className={`text-sm ${isExpired ? 'text-red-400 font-bold' : 'text-indigo-600'}`}>
                             {user.expires_at ? new Date(user.expires_at).toLocaleDateString('ko-KR') : '무제한'} {isExpired && '(만료됨)'}
                           </span>
                         </td>
@@ -237,21 +237,21 @@ export default function AccountManagement({ token }: AccountManagementProps) {
       {/* 기간 연장 모달 */}
       {extendModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-sm w-full shadow-2xl">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 max-w-sm w-full shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">기간 연장</h3>
-              <button onClick={() => setExtendModalOpen(false)} className="text-slate-400 hover:text-white">
+              <h3 className="text-lg font-bold text-slate-800">기간 연장</h3>
+              <button onClick={() => setExtendModalOpen(false)} className="text-slate-500 hover:text-slate-800">
                 <X size={20} />
               </button>
             </div>
             <form onSubmit={handleExtendSubmit}>
               <div className="mb-6">
-                <label className="block text-sm text-slate-400 mb-2">새로운 만료일 (YYYY-MM-DD)</label>
+                <label className="block text-sm text-slate-500 mb-2">새로운 만료일 (YYYY-MM-DD)</label>
                 <input
                   type="date"
                   value={extendDateInput}
                   onChange={(e) => setExtendDateInput(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none"
+                  className="w-full bg-slate-950 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-blue-500 outline-none"
                   required
                 />
               </div>
@@ -259,13 +259,13 @@ export default function AccountManagement({ token }: AccountManagementProps) {
                 <button
                   type="button"
                   onClick={() => setExtendModalOpen(false)}
-                  className="px-4 py-2 text-sm text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg"
+                  className="px-4 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-200 rounded-lg"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded-lg font-medium"
+                  className="px-4 py-2 text-sm text-slate-800 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium"
                 >
                   변경 저장
                 </button>

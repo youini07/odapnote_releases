@@ -1,4 +1,4 @@
-// ================================================================
+﻿// ================================================================
 // UpdaterModal.tsx - 자동 업데이트 UI 컴포넌트
 // 밴드어드민의 UpdaterModal과 유사한 형태
 // ================================================================
@@ -76,12 +76,12 @@ export default function UpdaterModal() {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-xl border border-slate-700 w-96 p-6 shadow-2xl relative overflow-hidden">
+      <div className="bg-slate-50 rounded-xl border border-slate-200 w-96 p-6 shadow-2xl relative overflow-hidden">
         {/* 상단 닫기 버튼 */}
         {status !== 'downloading' && (
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white rounded transition-colors"
+            className="absolute top-4 right-4 p-1 text-slate-500 hover:text-slate-800 rounded transition-colors"
           >
             <X size={18} />
           </button>
@@ -93,20 +93,20 @@ export default function UpdaterModal() {
               <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-4">
                 <RefreshCw size={24} className="text-blue-400" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">새 업데이트 가능</h3>
-              <p className="text-sm text-slate-400 mb-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-2">새 업데이트 가능</h3>
+              <p className="text-sm text-slate-500 mb-6">
                 버전 {versionInfo?.version}이(가) 출시되었습니다. 업데이트하시겠습니까?
               </p>
               <div className="flex gap-3 w-full">
                 <button
                   onClick={handleClose}
-                  className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium text-sm"
+                  className="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg transition-colors font-medium text-sm"
                 >
                   나중에
                 </button>
                 <button
                   onClick={handleDownload}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-slate-800 rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2"
                 >
                   <Download size={16} />
                   업데이트 다운로드
@@ -117,21 +117,21 @@ export default function UpdaterModal() {
 
           {status === 'downloading' && (
             <>
-              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
-                <Loader2 size={24} className="text-emerald-400 animate-spin" />
+              <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4">
+                <Loader2 size={24} className="text-indigo-600 animate-spin" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">업데이트 다운로드 중...</h3>
-              <p className="text-sm text-slate-400 mb-4">
+              <h3 className="text-lg font-bold text-slate-800 mb-2">업데이트 다운로드 중...</h3>
+              <p className="text-sm text-slate-500 mb-4">
                 잠시만 기다려주세요. 백그라운드에서 다운로드됩니다.
               </p>
               
-              <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden mb-2">
+              <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden mb-2">
                 <div 
-                  className="h-full bg-emerald-500 transition-all duration-300"
+                  className="h-full bg-indigo-500 transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <div className="text-xs text-emerald-400 font-bold self-end">
+              <div className="text-xs text-indigo-600 font-bold self-end">
                 {Math.round(progress)}%
               </div>
             </>
@@ -139,23 +139,23 @@ export default function UpdaterModal() {
 
           {status === 'downloaded' && (
             <>
-              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
-                <CheckCircle2 size={24} className="text-emerald-400" />
+              <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4">
+                <CheckCircle2 size={24} className="text-indigo-600" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">다운로드 완료</h3>
-              <p className="text-sm text-slate-400 mb-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-2">다운로드 완료</h3>
+              <p className="text-sm text-slate-500 mb-6">
                 업데이트 준비가 완료되었습니다. 지금 재시작하여 설치하시겠습니까?
               </p>
               <div className="flex gap-3 w-full">
                 <button
                   onClick={handleClose}
-                  className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium text-sm"
+                  className="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg transition-colors font-medium text-sm"
                 >
                   나중에 재시작
                 </button>
                 <button
                   onClick={handleInstall}
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2"
                 >
                   <RefreshCw size={16} />
                   지금 재시작
@@ -169,13 +169,13 @@ export default function UpdaterModal() {
               <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
                 <AlertCircle size={24} className="text-red-400" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">업데이트 오류</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">업데이트 오류</h3>
               <p className="text-xs text-red-400/80 mb-6 bg-red-500/10 p-3 rounded-lg border border-red-500/20 text-left w-full break-all">
                 {errorMsg}
               </p>
               <button
                 onClick={handleClose}
-                className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium text-sm"
+                className="w-full py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg transition-colors font-medium text-sm"
               >
                 닫기
               </button>

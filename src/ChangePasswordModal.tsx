@@ -67,19 +67,19 @@ export function ChangePasswordModal({ isOpen, onClose, token }: ChangePasswordMo
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
-        <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
-          <h2 className="text-lg font-bold text-white flex items-center">
-            <Lock className="mr-2 text-emerald-400" size={20} /> 비밀번호 변경
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
+        <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-50">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center">
+            <Lock className="mr-2 text-indigo-600" size={20} /> 비밀번호 변경
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-800 transition-colors">
             <X size={24} />
           </button>
         </div>
 
         <div className="p-6">
           {message && (
-            <div className={`mb-6 p-3 rounded-lg flex items-center text-sm ${message.type === 'success' ? 'bg-emerald-900/30 border border-emerald-800/50 text-emerald-300' : 'bg-red-900/30 border border-red-800/50 text-red-300'}`}>
+            <div className={`mb-6 p-3 rounded-lg flex items-center text-sm ${message.type === 'success' ? 'bg-emerald-900/30 border border-emerald-800/50 text-indigo-600' : 'bg-red-900/30 border border-red-800/50 text-red-300'}`}>
               {message.type === 'success' ? <CheckCircle2 className="mr-2 shrink-0" size={16}/> : <AlertCircle className="mr-2 shrink-0" size={16}/>}
               <span className="whitespace-pre-wrap">{message.text}</span>
             </div>
@@ -87,7 +87,7 @@ export function ChangePasswordModal({ isOpen, onClose, token }: ChangePasswordMo
 
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">현재 비밀번호</label>
+              <label className="text-xs font-medium text-slate-500">현재 비밀번호</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Key size={14} className="text-slate-500" />
@@ -96,13 +96,13 @@ export function ChangePasswordModal({ isOpen, onClose, token }: ChangePasswordMo
                   type="password" 
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-emerald-500 transition-colors text-sm"
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors text-sm"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">새로운 비밀번호</label>
+              <label className="text-xs font-medium text-slate-500">새로운 비밀번호</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock size={14} className="text-slate-500" />
@@ -111,13 +111,13 @@ export function ChangePasswordModal({ isOpen, onClose, token }: ChangePasswordMo
                   type="password" 
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-emerald-500 transition-colors text-sm"
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors text-sm"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">새로운 비밀번호 확인</label>
+              <label className="text-xs font-medium text-slate-500">새로운 비밀번호 확인</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <CheckCircle2 size={14} className="text-slate-500" />
@@ -126,7 +126,7 @@ export function ChangePasswordModal({ isOpen, onClose, token }: ChangePasswordMo
                   type="password" 
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-emerald-500 transition-colors text-sm"
+                  className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors text-sm"
                 />
               </div>
             </div>
@@ -134,7 +134,7 @@ export function ChangePasswordModal({ isOpen, onClose, token }: ChangePasswordMo
             <button 
               type="submit" 
               disabled={isLoading}
-              className={`w-full py-3 mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center text-sm ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full py-3 mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center text-sm ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {isLoading ? <><Loader2 size={16} className="animate-spin mr-2" /> 변경 중...</> : '비밀번호 변경하기'}
             </button>
