@@ -1,4 +1,4 @@
-﻿# OdapNote Release Notes
+# OdapNote Release Notes
 
 ## v1.0.26
 - **UI/UX 개선**: 앱 전체 테마를 밝고 깔끔한 라이트(Light) 모드로 변경 완료 (로그인 페이지, 입력칸, 이동 버튼 등 모두 통일)

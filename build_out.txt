@@ -1,0 +1,7 @@
+
+> odapnote@1.0.26 build
+> tsc -b && vite build && tsc -p tsconfig.electron.json
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 1876 modules transformed.

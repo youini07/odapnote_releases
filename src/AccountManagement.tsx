@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldAlert, UserPlus, Save, Trash2, Loader2, Calendar, KeyRound, User, X } from 'lucide-react';
 
 interface AppUser {
