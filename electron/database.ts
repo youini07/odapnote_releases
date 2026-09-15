@@ -104,12 +104,20 @@ export function deleteWorkbook(workbookId: string): void {
     const shortId = workbookId.split('_').pop() || workbookId.substring(0, 6);
     const folderName = `${safeName}_${shortId}`;
     const newImgDir = path.join(getDataDir(), 'images', folderName);
-    if (fs.existsSync(newImgDir)) fs.rmSync(newImgDir, { recursive: true, force: true });
+    try {
+      if (fs.existsSync(newImgDir)) fs.rmSync(newImgDir, { recursive: true, force: true });
+    } catch (err) {
+      console.error(`Failed to delete directory ${newImgDir}:`, err);
+    }
   }
   
   // 구버전 폴더 방식 (혹시 남아있을 경우 삭제)
   const oldImgDir = path.join(getDataDir(), 'images', workbookId);
-  if (fs.existsSync(oldImgDir)) fs.rmSync(oldImgDir, { recursive: true, force: true });
+  try {
+    if (fs.existsSync(oldImgDir)) fs.rmSync(oldImgDir, { recursive: true, force: true });
+  } catch (err) {
+    console.error(`Failed to delete old directory ${oldImgDir}:`, err);
+  }
   
   writeJson(path.join(getDataDir(), 'workbooks.json'), workbooks.filter(w => w.id !== workbookId));
 }
@@ -342,7 +350,7 @@ export function rescanQuestionImages(workbookId: string): { success: boolean, ad
     
     for (const file of files) {
       if (file.toLowerCase().endsWith('.png')) {
-        let basename = path.basename(file, '.png');
+        let basename = path.parse(file).name;
         let pageNum = 1;
         
         // P008_0018.png 와 같이 페이지 접두사가 붙은 경우 분리 추출
@@ -472,7 +480,7 @@ export function scanUnregisteredFolders(): { success: boolean, addedWorkbooks: n
         // 문제 데이터 생성
         const questions: Question[] = [];
         for (const file of imageFiles) {
-          let basename = path.basename(file, '.png');
+          let basename = path.parse(file).name;
           let pageNum = 1;
           const match = basename.match(/^P(\d+)_(.+)$/i);
           if (match) {

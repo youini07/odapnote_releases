@@ -3,15 +3,52 @@
 // PDF 업로드, AI 분석, 문제집 목록, 학생용↔교사용 매칭
 // ================================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Upload, BookOpen, Trash2, Link, Search, FileText, Loader2, AlertCircle, CheckCircle2, Image, ChevronDown, ChevronUp, RefreshCw, FolderOpen, Edit2, Save, X } from 'lucide-react';
 import type { Workbook, Question } from './types';
+
+// ===================== 독립된 페이지 검색 컴포넌트 =====================
+function PageSearchInput({ onSearch }: { onSearch: (page: number) => void }) {
+  const [val, setVal] = useState('');
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const page = parseInt(val, 10);
+      if (!isNaN(page)) onSearch(page);
+    }
+  };
+
+  const handleSearch = () => {
+    const page = parseInt(val, 10);
+    if (!isNaN(page)) onSearch(page);
+  };
+
+  return (
+    <div className="flex items-center gap-2 mb-3 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50 w-fit">
+      <Search size={14} className="text-slate-400" />
+      <input
+        type="text"
+        inputMode="numeric"
+        value={val}
+        onChange={(e) => setVal(e.target.value.replace(/[^0-9]/g, ''))}
+        onKeyDown={handleKeyDown}
+        placeholder="페이지 이동 (예: 46)"
+        className="bg-transparent border-none text-sm text-white focus:outline-none w-32 placeholder-slate-500"
+      />
+      <button
+        onClick={handleSearch}
+        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition-colors"
+      >
+        이동
+      </button>
+    </div>
+  );
+}
 
 export default function WorkbookPanel() {
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
   const [analyzingJobs, setAnalyzingJobs] = useState<Record<string, { message: string, percent: number }>>({});
   const [selectedType, setSelectedType] = useState<'student' | 'teacher'>('student');
-  const [startNumber, setStartNumber] = useState('');
   const [analyzeStartPage, setAnalyzeStartPage] = useState('');
   const [analyzeEndPage, setAnalyzeEndPage] = useState('');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -75,7 +112,7 @@ export default function WorkbookPanel() {
       const startP = analyzeStartPage.trim() ? parseInt(analyzeStartPage.trim(), 10) : undefined;
       const endP = analyzeEndPage.trim() ? parseInt(analyzeEndPage.trim(), 10) : undefined;
 
-      const result = await window.electronAPI.analyzePdf(fileToAnalyze, selectedType, startNumber.trim() || undefined, startP, endP);
+      const result = await window.electronAPI.analyzePdf(fileToAnalyze, selectedType, undefined, startP, endP);
       
       if (result.success && result.workbook) {
         // 방금 생성된 문제집의 폴더명 업데이트 (DB 저장을 위해)
@@ -175,12 +212,16 @@ export default function WorkbookPanel() {
 
   // 실제 삭제 실행
   const confirmDelete = async () => {
-    if (!workbookToDelete || deleteInput !== '삭제') return;
+    if (!workbookToDelete || deleteInput.trim() !== '삭제') return;
 
-    await window.electronAPI.deleteWorkbook(workbookToDelete.id);
-    await loadWorkbooks();
-    if (expandedWorkbook === workbookToDelete.id) setExpandedWorkbook(null);
-    setWorkbookToDelete(null);
+    try {
+      await window.electronAPI.deleteWorkbook(workbookToDelete.id);
+      await loadWorkbooks();
+      if (expandedWorkbook === workbookToDelete.id) setExpandedWorkbook(null);
+      setWorkbookToDelete(null);
+    } catch (err: any) {
+      alert(`삭제 중 오류가 발생했습니다: ${err.message}`);
+    }
   };
 
   // 학생용↔교사용 매칭
@@ -332,17 +373,7 @@ export default function WorkbookPanel() {
             </div>
           </div>
 
-          {/* 시작 문제 번호 (선택) */}
-          <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">시작 문제 (선택, 예: 0001, A01)</label>
-            <input
-              type="text"
-              value={startNumber}
-              onChange={(e) => setStartNumber(e.target.value)}
-              placeholder="힌트 제공"
-              className="px-3 py-2 text-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-lg placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 w-44"
-            />
-          </div>
+
 
           {/* 분석 페이지 범위 (선택) */}
           <div className="flex items-end gap-2">
@@ -460,7 +491,7 @@ export default function WorkbookPanel() {
               </button>
               <button
                 onClick={confirmDelete}
-                disabled={deleteInput !== '삭제'}
+                disabled={deleteInput.trim() !== '삭제'}
                 className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 영구 삭제
@@ -536,6 +567,24 @@ function WorkbookCard({
     && allWorkbooks.find(w => w.id === pairingMode)?.type !== workbook.type;
 
   const typeColor = workbook.type === 'student' ? 'blue' : 'orange';
+
+  const scrollToPage = (pageNum: number) => {
+    const firstQ = questions.find(q => q.page === pageNum);
+    if (firstQ) {
+      const el = document.getElementById(`wb-${workbook.id}-q-${firstQ.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // highlight briefly
+        el.style.transition = 'box-shadow 0.3s';
+        el.style.boxShadow = '0 0 0 3px #10b981';
+        setTimeout(() => { el.style.boxShadow = 'none'; }, 1500);
+      } else {
+        alert(`${pageNum}페이지를 찾을 수 없습니다.`);
+      }
+    } else {
+      alert(`${pageNum}페이지에 해당하는 문제가 없습니다.`);
+    }
+  };
 
   return (
     <div className={`bg-slate-900/60 rounded-lg border transition-all ${
@@ -698,7 +747,8 @@ function WorkbookCard({
           {(() => {
             // 연속된 문제 번호에서 누락된 번호 계산
             const nums = questions.map(q => {
-              const match = q.number.match(/^([a-zA-Z가-힣\s\-]*?)(\d+)$/);
+              const coreNumber = q.number.replace(/^P\d+[_ \-]/, '');
+              const match = coreNumber.match(/^(.*?)(\d+)$/);
               return match ? { prefix: match[1], num: parseInt(match[2], 10), padLen: match[2].length, original: q.number } : null;
             }).filter(Boolean) as { prefix: string; num: number; padLen: number; original: string }[];
 
@@ -769,10 +819,18 @@ function WorkbookCard({
               </>
             );
           })()}
+
+          {/* 페이지 검색 바 (IIFE 외부로 분리하여 포커스 잃음 방지) */}
+          <PageSearchInput onSearch={scrollToPage} />
+
           <div className="grid grid-cols-4 gap-2">
-            {questions.map(q => (
+            {[...questions].sort((a, b) => {
+              if (a.page !== b.page) return a.page - b.page;
+              return a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: 'base' });
+            }).map(q => (
               <div 
                 key={q.id} 
+                id={`wb-${workbook.id}-q-${q.id}`}
                 className={`relative bg-slate-800/80 rounded-md p-2 border transition-all group ${
                   selectedIds.has(q.id) 
                     ? 'border-red-500/50 ring-1 ring-red-500/20' 
@@ -794,7 +852,7 @@ function WorkbookCard({
                 >
                   <div className="flex items-center justify-between mb-1 pr-6">
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-bold text-red-400">#{q.number}</span>
+                      <span className="text-[10px] font-bold text-red-400">#{q.number.replace(/^P\d+[_ \-]/, '')}</span>
                       <span className="text-[9px] text-slate-500">p.{q.page}</span>
                     </div>
                   </div>

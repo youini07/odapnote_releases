@@ -7,9 +7,49 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FileText, Download, Printer, Eye, Loader2,
   CheckCircle2, AlertCircle, Plus, X, Image,
-  BookOpen, User, ChevronDown
+  BookOpen, User, ChevronDown, Search
 } from 'lucide-react';
 import type { Student, Workbook, Question } from './types';
+
+// ===================== 독립된 페이지 검색 컴포넌트 =====================
+// 부모 컴포넌트의 거대한 리렌더링(성능 저하 및 포커스 잃음)을 방지하기 위해 
+// 입력 상태를 독립적으로 관리합니다.
+function PageSearchInput({ onSearch }: { onSearch: (page: number) => void }) {
+  const [val, setVal] = useState('');
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const page = parseInt(val, 10);
+      if (!isNaN(page)) onSearch(page);
+    }
+  };
+
+  const handleSearch = () => {
+    const page = parseInt(val, 10);
+    if (!isNaN(page)) onSearch(page);
+  };
+
+  return (
+    <div className="flex items-center gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+      <Search size={14} className="text-slate-400" />
+      <input
+        type="text"
+        inputMode="numeric"
+        value={val}
+        onChange={(e) => setVal(e.target.value.replace(/[^0-9]/g, ''))}
+        onKeyDown={handleKeyDown}
+        placeholder="페이지 이동 (예: 46)"
+        className="bg-transparent border-none text-sm text-white focus:outline-none w-32 placeholder-slate-500"
+      />
+      <button
+        onClick={handleSearch}
+        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition-colors"
+      >
+        이동
+      </button>
+    </div>
+  );
+}
 
 export default function OdapNotePanel() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -29,6 +69,7 @@ export default function OdapNotePanel() {
     name?: string;
   } | null>(null);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+  const [allQuestionImages, setAllQuestionImages] = useState<Record<string, string>>({});
 
   // 데이터 로딩
   const loadData = useCallback(async () => {
@@ -48,11 +89,51 @@ export default function OdapNotePanel() {
   // 문제집 선택 시 전체 문제 목록 로드
   useEffect(() => {
     if (selectedWorkbookId) {
-      window.electronAPI.getQuestions(selectedWorkbookId).then(setAllQuestions);
+      window.electronAPI.getQuestions(selectedWorkbookId).then(async (qs) => {
+        setAllQuestions(qs);
+        const images: Record<string, string> = {};
+        await Promise.all(qs.map(async (q) => {
+          const base64 = await window.electronAPI.readImageAsBase64(q.imagePath);
+          if (base64) images[q.id] = base64;
+        }));
+        setAllQuestionImages(images);
+      });
     } else {
       setAllQuestions([]);
+      setAllQuestionImages({});
     }
   }, [selectedWorkbookId]);
+
+  const toggleQuestionSelection = (num: string) => {
+    const currentNums = parseQuestionNumbers(questionNumbersInput);
+    const normalizedTarget = normalizeNumber(num);
+    if (currentNums.includes(normalizedTarget)) {
+      // Remove
+      const newNums = currentNums.filter(n => n !== normalizedTarget);
+      setQuestionNumbersInput(newNums.join(', '));
+    } else {
+      // Add
+      const newNums = [...currentNums, num];
+      setQuestionNumbersInput(newNums.join(', '));
+    }
+  };
+
+  const scrollToPage = (pageNum: number) => {
+    const firstQ = allQuestions.find(q => q.page === pageNum);
+    if (firstQ) {
+      const el = document.getElementById(`gallery-q-${firstQ.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.transition = 'box-shadow 0.3s';
+        el.style.boxShadow = '0 0 0 3px #10b981';
+        setTimeout(() => { el.style.boxShadow = 'none'; }, 1500);
+      } else {
+        alert(`${pageNum}페이지를 찾을 수 없습니다.`);
+      }
+    } else {
+      alert(`${pageNum}페이지에 해당하는 문제가 없습니다.`);
+    }
+  };
 
   // 번호 파싱 및 정규화
   const normalizeNumber = (num: string) => {
@@ -394,6 +475,72 @@ export default function OdapNotePanel() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 전체 문제 갤러리 뷰 */}
+      {selectedWorkbookId && allQuestions.length > 0 && (
+        <div className="bg-slate-900/60 rounded-xl border border-slate-700/50 p-5 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <BookOpen size={16} className="text-emerald-400" />
+              전체 문제 갤러리
+              <span className="text-slate-500 font-normal">({allQuestions.length}문제)</span>
+            </h3>
+            <PageSearchInput onSearch={scrollToPage} />
+          </div>
+          
+          <div className="text-[11px] text-emerald-500 bg-emerald-500/10 px-3 py-2 rounded mb-4 inline-block">
+            문제를 클릭하면 오답노트 문제번호에 자동으로 추가/취소됩니다.
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {[...allQuestions].sort((a, b) => {
+              if (a.page !== b.page) return a.page - b.page;
+              return a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: 'base' });
+            }).map(q => {
+              const isSelected = inputNumbers.includes(normalizeNumber(q.number));
+              return (
+                <div 
+                  key={q.id} 
+                  id={`gallery-q-${q.id}`}
+                  className={`relative bg-slate-800/80 rounded-md p-2 border transition-all cursor-pointer group ${
+                    isSelected 
+                      ? 'border-emerald-500/50 ring-1 ring-emerald-500/50 bg-emerald-500/10' 
+                      : 'border-slate-700/30 hover:border-emerald-400/50'
+                  }`}
+                  onClick={() => toggleQuestionSelection(q.number)}
+                >
+                  <div className="absolute top-2 right-2 z-10">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                      isSelected ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600 bg-slate-800/50'
+                    }`}>
+                      {isSelected && <CheckCircle2 size={12} className="text-white" />}
+                    </div>
+                  </div>
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-center justify-between mb-1 pr-6">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-emerald-400">#{q.number.replace(/^P\d+[_ \-]/, '')}</span>
+                        <span className="text-[9px] text-slate-500">p.{q.page}</span>
+                      </div>
+                    </div>
+                    {allQuestionImages[q.id] ? (
+                      <img
+                        src={allQuestionImages[q.id]}
+                        alt={`문제 ${q.number}`}
+                        className="w-full h-20 object-contain bg-white/90 rounded group-hover:brightness-95 transition-all"
+                      />
+                    ) : (
+                      <div className="w-full h-20 bg-slate-700/50 rounded flex items-center justify-center">
+                        <Image size={16} className="text-slate-600" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
