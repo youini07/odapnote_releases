@@ -92,10 +92,14 @@ export default function OdapNotePanel() {
       window.electronAPI.getQuestions(selectedWorkbookId).then(async (qs) => {
         setAllQuestions(qs);
         const images: Record<string, string> = {};
-        await Promise.all(qs.map(async (q) => {
-          const base64 = await window.electronAPI.readImageAsBase64(q.imagePath);
-          if (base64) images[q.id] = base64;
-        }));
+        try {
+          await Promise.all(qs.map(async (q) => {
+            const base64 = await window.electronAPI.readImageAsBase64(q.imagePath);
+            if (base64) images[q.id] = base64;
+          }));
+        } catch (err) {
+          console.error("Failed to load some images:", err);
+        }
         setAllQuestionImages(images);
       });
     } else {
