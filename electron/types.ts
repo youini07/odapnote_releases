@@ -15,7 +15,12 @@ export interface Workbook {
   status?: 'analyzing' | 'paused' | 'completed' | 'error'; // 분석 진행 상태
   lastAnalyzedPage?: number; // 마지막으로 분석된 페이지 번호
   analyzeEndPage?: number; // 사용자가 설정했던 분석 끝 페이지
-  folderName?: string;    // 분류 보관용 폴더명
+  folderName?: string; // 분류를 위한 폴더명 커스텀 지원
+  customCoverImagePath?: string; // 사용자가 등록한 커스텀 표지 경로
+  tocImagePath?: string; // 목차 이미지 경로
+  grade?: string; // 학년
+  publicationYear?: string; // 출판년도
+  publisher?: string; // 출판사
 }
 
 /** 개별 문제 정보 */
@@ -93,12 +98,16 @@ export interface AppSettings {
   geminiApiKey: string;
   paperSize: 'A4' | 'B4';
   academyLogoPath?: string; // 학원 커스텀 로고
+  academyName?: string;
   questionsPerPage: number; // 페이지당 문제 수 (기본: 4)
   dataPath: string;        // 데이터 저장 경로
   customStorageDir?: string; // 사용자 지정 저장 경로
   concurrentScanLimit?: number; // 동시 분석 페이지 수 (기본 1)
   isWorkbookLockEnabled?: boolean; // 문제집 관리 탭 잠금 여부
   workbookTabPassword?: string; // 문제집 관리 탭 잠금 비밀번호
+  showTabSuneung?: boolean; // 수능/모의고사 탭 표시 여부
+  showTabSchool?: boolean; // 학교기출 탭 표시 여부
+  showTabMaterial?: boolean; // 자료/시험지 탭 표시 여부
 }
 
 /** Electron API */

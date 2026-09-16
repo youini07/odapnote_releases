@@ -1,7 +1,7 @@
 {
   "name": "odapnote",
   "private": true,
-  "version": "1.0.26",
+  "version": "1.2.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
+    "adm-zip": "^0.6.1",
     "archiver": "^7.0.1",
     "electron-updater": "^6.8.9",
     "path2d-polyfill": "^3.2.3",
@@ -54,6 +55,7 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.0",
     "@tailwindcss/vite": "^4.3.0",
+    "@types/adm-zip": "^0.5.8",
     "@types/archiver": "^6.0.3",
     "@types/node": "^24.12.3",
     "@types/pdfkit": "^0.13.8",

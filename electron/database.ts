@@ -10,14 +10,14 @@ import * as path from 'path';
 import { Workbook, Question, Student, OdapNoteRecord, AppSettings } from './types.js';
 
 /** 시스템 기본 데이터 저장 디렉토리 (settings.json 등 유지) */
-function getSystemDataDir(): string {
+export function getSystemDataDir(): string {
   const dir = path.join(app.getPath('userData'), 'odapnote_data');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 /** 실제 데이터가 저장되는 디렉토리 (커스텀 경로가 있으면 우선 사용) */
-function getDataDir(): string {
+export function getDataDir(): string {
   const systemDir = getSystemDataDir();
   const settingsPath = path.join(systemDir, 'settings.json');
   try {
@@ -34,7 +34,7 @@ function getDataDir(): string {
 }
 
 /** 문제 이미지 저장 디렉토리 */
-function getQuestionsImageDir(workbookId: string): string {
+export function getQuestionsImageDir(workbookId: string): string {
   const workbooks = getWorkbooks();
   const wb = workbooks.find(w => w.id === workbookId);
   
@@ -282,8 +282,12 @@ export function getAppSettings(): AppSettings {
     geminiApiKey: '',
     paperSize: 'A4',
     academyLogoPath: '',
+    academyName: '더MP수학전문학원',
     questionsPerPage: 4,
     dataPath: getDataDir(),
+    showTabSuneung: true,
+    showTabSchool: true,
+    showTabMaterial: true,
   };
   
   const savedSettings = readJson<AppSettings>(filePath, defaults);

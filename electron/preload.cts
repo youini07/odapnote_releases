@@ -23,6 +23,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** 문제집 수정 (폴더명 등) */
   updateWorkbook: (workbookId: string, updates: any) => ipcRenderer.invoke('update-workbook', workbookId, updates),
   
+  /** 커스텀 표지 설정 */
+  setWorkbookCover: (workbookId: string, imagePath: string) => ipcRenderer.invoke('set-workbook-cover', workbookId, imagePath),
+  
+  /** 목차 이미지 설정 */
+  setWorkbookToc: (workbookId: string, imagePath: string) => ipcRenderer.invoke('set-workbook-toc', workbookId, imagePath),
+  
+  /** 문제집 가져오기 (Import) */
+  importWorkbook: () => ipcRenderer.invoke('import-workbook'),
+  
+  /** 문제집 내보내기 (Export) */
+  exportWorkbook: (workbookId: string) => ipcRenderer.invoke('export-workbook', workbookId),
+  
   /** 문제집 삭제 */
   deleteWorkbook: (workbookId: string) => ipcRenderer.invoke('delete-workbook', workbookId),
   
@@ -63,9 +75,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   /** 파일 저장 위치 선택 */
   selectSaveDir: () => ipcRenderer.invoke('select-save-dir'),
-  
-  /** 로고 이미지 선택 */
   selectLogoImage: () => ipcRenderer.invoke('select-logo-image'),
+  selectImageFile: () => ipcRenderer.invoke('select-image-file'),
 
   // ====== 설정 ======
   getAppSettings: () => ipcRenderer.invoke('get-app-settings'),

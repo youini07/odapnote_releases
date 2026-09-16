@@ -16,6 +16,10 @@ export interface ElectronAPI {
   cancelAnalyzePdf: (workbookId: string) => Promise<boolean>;
   getWorkbooks: () => Promise<Workbook[]>;
   updateWorkbook: (workbookId: string, updates: Partial<Workbook>) => Promise<boolean>;
+  setWorkbookCover: (workbookId: string, imagePath: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;
+  setWorkbookToc: (workbookId: string, imagePath: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;
+  exportWorkbook: (workbookId: string) => Promise<{ success: boolean; error?: string }>;
+  importWorkbook: () => Promise<{ success: boolean; error?: string; workbookId?: string }>;
   deleteWorkbook: (workbookId: string) => Promise<boolean>;
   pairWorkbooks: (studentId: string, teacherId: string) => Promise<boolean>;
   getQuestions: (workbookId: string) => Promise<Question[]>;
@@ -47,6 +51,7 @@ export interface ElectronAPI {
   deleteOdapNoteRecord: (studentId: string, recordId: string) => Promise<{ success: boolean; error?: string }>;
   selectSaveDir: () => Promise<string | null>;
   selectLogoImage: () => Promise<string | null>;
+  selectImageFile: () => Promise<string | null>;
 
   // 설정
   getAppSettings: () => Promise<AppSettings>;
@@ -89,6 +94,11 @@ export interface Workbook {
   lastAnalyzedPage?: number;
   analyzeEndPage?: number; // 사용자가 설정했던 분석 끝 페이지
   folderName?: string; // 분류를 위한 폴더명 커스텀 지원
+  customCoverImagePath?: string; // 사용자가 등록한 커스텀 표지 경로
+  tocImagePath?: string; // 목차 이미지 경로
+  grade?: string; // 학년
+  publicationYear?: string; // 출판년도
+  publisher?: string; // 출판사
 }
 
 export interface Question {
@@ -130,10 +140,14 @@ export interface AppSettings {
   geminiApiKey: string;
   paperSize: 'A4' | 'B4';
   academyLogoPath?: string;
+  academyName?: string;
   questionsPerPage: number;
   dataPath: string;
   customStorageDir?: string;
   concurrentScanLimit?: number; // 동시 분석 페이지 수 (기본 1)
   isWorkbookLockEnabled?: boolean; // 문제집 관리 탭 잠금 여부
   workbookTabPassword?: string; // 문제집 관리 탭 잠금 비밀번호
+  showTabSuneung?: boolean; // 수능/모의고사 탭 표시 여부
+  showTabSchool?: boolean; // 학교기출 탭 표시 여부
+  showTabMaterial?: boolean; // 자료/시험지 탭 표시 여부
 }

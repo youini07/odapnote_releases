@@ -1,3 +1,4 @@
+import type { AppSettings } from './types';
 // ================================================================
 // App.tsx - 메인 앱 컴포넌트 + 사이드바 네비게이션
 // 라이트(Light) 테마 기반 프리미엄 SaaS UI (퍼플/인디고 중심)
@@ -17,6 +18,7 @@ import UpdaterModal from './UpdaterModal';
 import Login from './Login';
 import AccountManagement from './AccountManagement';
 import PlaceholderPanel from './PlaceholderPanel';
+import LibraryPanel from './LibraryPanel';
 
 // 탭 정의
 type TabId = 'dashboard' | 'students' | 'classes' | 'workbooks' | 'library' | 'materials' | 'school_exams' | 'csat_exams' | 'settings' | 'account';
@@ -49,6 +51,12 @@ export default function App() {
   
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [isWorkbookUnlocked, setIsWorkbookUnlocked] = useState(false);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+
+  useEffect(() => {
+    window.electronAPI.getAppSettings().then(setSettings);
+  }, []);
+
 
   const handleLoginSuccess = (token: string, user: string, role: string, expires_at?: string) => {
     setAuthToken(token);
@@ -161,7 +169,12 @@ export default function App() {
 
         {/* 탭 리스트 */}
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1 custom-scrollbar">
-          {tabs.map(tab => (
+          {tabs.map(tab => {
+            if (tab.id === 'csat_exams' && settings?.showTabSuneung === false) return null;
+            if (tab.id === 'school_exams' && settings?.showTabSchool === false) return null;
+            if (tab.id === 'materials' && settings?.showTabMaterial === false) return null;
+
+            return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -190,7 +203,8 @@ export default function App() {
                 </div>
               </div>
             </button>
-          ))}
+            );
+          })}
         </nav>
 
         {/* 하단 프로필/계정 */}
@@ -222,21 +236,9 @@ export default function App() {
         {/* 상단 헤더 바 (네비게이션/검색 등 위치) */}
         <header className="h-14 shrink-0 bg-slate-100 rounded-2xl shadow-sm border border-slate-300 flex items-center justify-between px-6 mb-4">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-400 font-medium">더MP수학전문학원</span>
+            <span className="text-slate-400 font-medium">{settings?.academyName || '더MP수학전문학원'}</span>
             <span className="text-slate-300">/</span>
             <span className="text-slate-800 font-bold">{activeTabData?.label}</span>
-          </div>
-          
-          <div className="flex-1 max-w-md mx-6">
-            <div className="relative flex items-center w-full h-9 rounded-full bg-slate-50 border border-slate-300 px-4 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-              <span className="text-slate-400">🔍</span>
-              <input 
-                type="text" 
-                placeholder="찾기 또는 이동" 
-                className="w-full bg-transparent border-none text-[13px] text-slate-700 focus:outline-none ml-2"
-              />
-              <span className="text-[10px] bg-slate-100 border border-slate-300 text-slate-400 px-1.5 py-0.5 rounded shadow-sm">Ctrl + K</span>
-            </div>
           </div>
         </header>
 
@@ -251,11 +253,11 @@ export default function App() {
               <OdapNoteCombinedView isUnlocked={isWorkbookUnlocked} onUnlock={() => setIsWorkbookUnlocked(true)} />
             </div>
           )}
-          {activeTab === 'library' && <PlaceholderPanel title="라이브러리" description="교재 및 분석 결과를 모아보는 공간입니다." />}
+          {activeTab === 'library' && <LibraryPanel />}
           {activeTab === 'materials' && <PlaceholderPanel title="자료·시험지" description="학원 자체 시험지를 관리하세요." />}
           {activeTab === 'school_exams' && <PlaceholderPanel title="학교 기출" description="주변 학교 기출문제를 관리하세요." />}
           {activeTab === 'csat_exams' && <PlaceholderPanel title="수능·모의고사" description="전국연합 평가 자료를 관리하세요." />}
-          {activeTab === 'settings' && <SettingsPanel token={authToken} />}
+          {activeTab === 'settings' && <SettingsPanel token={authToken} onSettingsChange={setSettings} />}
           {activeTab === 'account' && <AccountManagement token={authToken} />}
         </div>
       </main>

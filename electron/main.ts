@@ -13,7 +13,9 @@ import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
 import * as database from './database.js';
 import { createPdfIndex, extractAndCropQuestions, activeAnalyses } from './pdfAnalyzer.js';
+import * as exporter from './exporter.js';
 import { generateOdapNoteFiles } from './exporter.js';
+import { exportWorkbook, importWorkbook } from './libraryManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -253,10 +255,103 @@ ipcMain.handle('update-workbook', (event, workbookId: string, updates: any) => {
   return false;
 });
 
+/** 커스텀 표지 설정 */
+ipcMain.handle('set-workbook-cover', async (event, workbookId: string, sourceImagePath: string) => {
+  try {
+    if (!fs.existsSync(sourceImagePath)) {
+      return { success: false, error: '선택한 이미지가 존재하지 않습니다.' };
+    }
+    const ext = path.extname(sourceImagePath);
+    const destFileName = `cover_${Date.now()}${ext}`;
+    const destDir = database.getQuestionsImageDir(workbookId);
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+    const destPath = path.join(destDir, destFileName);
+    fs.copyFileSync(sourceImagePath, destPath);
+
+    const workbooks = database.getWorkbooks();
+    const workbook = workbooks.find(w => w.id === workbookId);
+    if (workbook) {
+      workbook.customCoverImagePath = destPath;
+      database.saveWorkbook(workbook);
+      return { success: true, newPath: destPath };
+    }
+    return { success: false, error: '문제집을 찾을 수 없습니다.' };
+  } catch (error: any) {
+    console.error('표지 설정 실패:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/** 목차 이미지 설정 */
+ipcMain.handle('set-workbook-toc', async (event, workbookId: string, sourceImagePath: string) => {
+  try {
+    if (!fs.existsSync(sourceImagePath)) {
+      return { success: false, error: '선택한 이미지가 존재하지 않습니다.' };
+    }
+    const ext = path.extname(sourceImagePath);
+    const destFileName = `toc_${Date.now()}${ext}`;
+    const destDir = database.getQuestionsImageDir(workbookId);
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+    const destPath = path.join(destDir, destFileName);
+    fs.copyFileSync(sourceImagePath, destPath);
+
+    const workbooks = database.getWorkbooks();
+    const workbook = workbooks.find(w => w.id === workbookId);
+    if (workbook) {
+      workbook.tocImagePath = destPath;
+      database.saveWorkbook(workbook);
+      return { success: true, newPath: destPath };
+    }
+    return { success: false, error: '문제집을 찾을 수 없습니다.' };
+  } catch (error: any) {
+    console.error('목차 이미지 설정 실패:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 /** 문제집 삭제 */
 ipcMain.handle('delete-workbook', (event, workbookId: string) => {
   database.deleteWorkbook(workbookId);
   return true;
+});
+
+/** 문제집 내보내기 (Export) */
+ipcMain.handle('export-workbook', async (event, workbookId: string) => {
+  const workbooks = database.getWorkbooks();
+  const wb = workbooks.find((w: any) => w.id === workbookId);
+  
+  let defaultFileName = `odapnote_export_${workbookId.split('_').pop()}.odapbk`;
+  if (wb) {
+    const safeString = (str: string) => str ? str.replace(/[\/\\?%*:|"<>]/g, '_') : '미상';
+    defaultFileName = `${safeString(wb.publicationYear)}_${safeString(wb.publisher)}_${safeString(wb.name)}_${safeString(wb.grade)}.odapbk`;
+  }
+
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow!, {
+    title: '문제집 내보내기',
+    defaultPath: defaultFileName,
+    filters: [{ name: '오답노트 백업 파일', extensions: ['odapbk'] }]
+  });
+
+  if (canceled || !filePath) return { success: false, error: '취소되었습니다.' };
+
+  return exportWorkbook(workbookId, filePath);
+});
+
+/** 문제집 가져오기 (Import) */
+ipcMain.handle('import-workbook', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow!, {
+    title: '문제집 가져오기',
+    filters: [{ name: '오답노트 백업 파일', extensions: ['odapbk'] }],
+    properties: ['openFile']
+  });
+
+  if (canceled || filePaths.length === 0) return { success: false, error: '취소되었습니다.' };
+
+  return importWorkbook(filePaths[0]);
 });
 
 /** 학생용-교사용 매칭 */
@@ -466,6 +561,20 @@ ipcMain.handle('select-logo-image', async () => {
     properties: ['openFile'],
     filters: [{ name: '이미지 파일', extensions: ['png', 'jpg', 'jpeg'] }],
     title: '학원 로고 이미지 선택',
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
+/** 일반 이미지 선택 다이얼로그 (커스텀 표지용 등) */
+ipcMain.handle('select-image-file', async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: '이미지 파일', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+    title: '이미지 파일 선택',
   });
   if (!result.canceled && result.filePaths.length > 0) {
     return result.filePaths[0];

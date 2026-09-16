@@ -9,15 +9,34 @@ import { ChangePasswordModal } from './ChangePasswordModal';
 
 interface SettingsPanelProps {
   token?: string;
+  onSettingsChange?: (settings: AppSettings) => void;
 }
 
-export default function SettingsPanel({ token }: SettingsPanelProps) {
+export default function SettingsPanel({ token, onSettingsChange }: SettingsPanelProps) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const originalSettingsRef = useRef<AppSettings | null>(null);
   const [appVersion, setAppVersion] = useState<string>('로딩 중...');
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [unlockPromptVisible, setUnlockPromptVisible] = useState(false);
+  const [unlockPasswordInput, setUnlockPasswordInput] = useState('');
+  const [unlockTargetAction, setUnlockTargetAction] = useState<'toggle' | 'change_password' | null>(null);
+
+  const handleUnlockSubmit = () => {
+    const original = originalSettingsRef.current;
+    if (unlockPasswordInput !== original?.workbookTabPassword) {
+      alert("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    if (unlockTargetAction === 'toggle') {
+      setSettings({ ...settings!, isWorkbookLockEnabled: false, workbookTabPassword: '' });
+    } else if (unlockTargetAction === 'change_password') {
+      originalSettingsRef.current = { ...original!, workbookTabPassword: '' };
+    }
+    setUnlockPromptVisible(false);
+  };
+
 
   useEffect(() => {
     window.electronAPI.getAppSettings().then(s => {
@@ -34,6 +53,7 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
     if (!settings) return;
     await window.electronAPI.saveAppSettings(settings);
     originalSettingsRef.current = settings;
+    onSettingsChange?.(settings);
     setSaveMsg('설정이 저장되었습니다.');
     setTimeout(() => setSaveMsg(null), 3000);
   };
@@ -141,19 +161,15 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                     const original = originalSettingsRef.current;
                     
                     if (isEnabled && original?.isWorkbookLockEnabled) {
-                      // 이미 잠겨있는 상태에서 해제할 때 비밀번호 확인
-                      const pass = window.prompt("잠금을 해제하려면 현재 접근 비밀번호를 입력하세요.");
-                      if (pass === null) return; // 취소 누름
-                      if (pass !== original.workbookTabPassword) {
-                        alert("비밀번호가 일치하지 않습니다.");
-                        return;
-                      }
+                      setUnlockTargetAction('toggle');
+                      setUnlockPromptVisible(true);
+                      setUnlockPasswordInput('');
+                      return;
                     }
                     
                     setSettings({ 
                       ...settings, 
                       isWorkbookLockEnabled: !isEnabled,
-                      // 해제 시 비밀번호도 초기화
                       workbookTabPassword: isEnabled ? '' : settings.workbookTabPassword
                     });
                   }}
@@ -172,18 +188,18 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                       value={settings.workbookTabPassword || ''}
                       onChange={(e) => {
                         const original = originalSettingsRef.current;
-                        // 이미 저장된 잠금 비밀번호가 있는데 변경하려고 할 때 검증
                         if (original?.isWorkbookLockEnabled && original?.workbookTabPassword) {
-                          const pass = window.prompt("비밀번호를 변경하려면 기존 비밀번호를 먼저 입력하세요.");
-                          if (pass === null) return;
-                          if (pass !== original.workbookTabPassword) {
-                            alert("비밀번호가 일치하지 않습니다.");
-                            return;
-                          }
-                          // 검증 통과 시 오리지널 상태를 풀어주어 연속 입력이 가능하도록 함
-                          originalSettingsRef.current = { ...original, workbookTabPassword: '' };
+                          return;
                         }
                         setSettings({ ...settings, workbookTabPassword: e.target.value });
+                      }}
+                      onFocus={() => {
+                        const original = originalSettingsRef.current;
+                        if (original?.isWorkbookLockEnabled && original?.workbookTabPassword && !unlockPromptVisible) {
+                           setUnlockTargetAction('change_password');
+                           setUnlockPromptVisible(true);
+                           setUnlockPasswordInput('');
+                        }
                       }}
                       placeholder="비밀번호 설정..."
                       className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
@@ -195,6 +211,46 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                   </p>
                 </div>
               )}
+            </div>
+
+                        {/* 좌측 탭 표시 설정 */}
+            <div className="bg-white shadow-sm border border-slate-100 rounded-xl border border-slate-200 p-5 shadow-sm mt-6">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                <Folder size={14} className="text-blue-400" />
+                좌측 탭 표시 설정
+              </h3>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                  <span className="text-sm text-slate-600 font-medium">수능·모의고사 탭 표시</span>
+                  <button 
+                    onClick={() => setSettings({ ...settings, showTabSuneung: !(settings.showTabSuneung ?? true) })}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${(settings.showTabSuneung ?? true) ? 'bg-indigo-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${(settings.showTabSuneung ?? true) ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                  <span className="text-sm text-slate-600 font-medium">학교 기출 탭 표시</span>
+                  <button 
+                    onClick={() => setSettings({ ...settings, showTabSchool: !(settings.showTabSchool ?? true) })}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${(settings.showTabSchool ?? true) ? 'bg-indigo-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${(settings.showTabSchool ?? true) ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                  <span className="text-sm text-slate-600 font-medium">자료·시험지 탭 표시</span>
+                  <button 
+                    onClick={() => setSettings({ ...settings, showTabMaterial: !(settings.showTabMaterial ?? true) })}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${(settings.showTabMaterial ?? true) ? 'bg-indigo-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${(settings.showTabMaterial ?? true) ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* API 키 설정 */}
@@ -273,10 +329,10 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                   </button>
                 </div>
 
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mt-3">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
                   <div className="flex gap-2">
-                    <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
-                    <div className="text-xs text-amber-200/80 leading-relaxed">
+                    <AlertCircle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-xs text-amber-800 leading-relaxed">
                       <strong>주의:</strong> 경로를 변경하면 프로그램은 변경된 새 경로에서 데이터를 찾습니다. 기존 작업물을 유지하려면 윈도우 탐색기에서 예전 데이터를 새 폴더로 직접 옮겨주세요.<br/>
                       <strong>외부 폴더 복사 후:</strong> 다른 PC에서 가져온 이미지 폴더를 복사해 넣은 뒤, <b>[미등록 외부 폴더 스캔 및 연동]</b> 버튼을 눌러야 프로그램에 등록됩니다.
                     </div>
@@ -355,6 +411,18 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
                     <option value={3}>3페이지 동시 분석 (3배속)</option>
                     <option value={5}>5페이지 동시 분석 (5배속 - 유료 전용)</option>
                   </select>
+                </div>
+
+                                {/* 학원 이름 설정 */}
+                <div className="pt-5 border-t border-slate-200 mt-5">
+                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">학원 이름 (상단 고정)</label>
+                  <input
+                    type="text"
+                    value={settings.academyName || ''}
+                    onChange={(e) => setSettings({ ...settings, academyName: e.target.value })}
+                    placeholder="예: 더MP수학전문학원"
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
+                  />
                 </div>
 
                 {/* 학원 커스텀 로고 */}
@@ -447,6 +515,29 @@ export default function SettingsPanel({ token }: SettingsPanelProps) {
         onClose={() => setIsPasswordModalOpen(false)} 
         token={token || ''} 
       />
+      {/* 잠금 해제 확인 모달 */}
+      {unlockPromptVisible && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in-up p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">보안 확인</h3>
+            <p className="text-sm text-slate-500 mb-4">현재 설정된 접근 비밀번호를 입력해주세요.</p>
+            <input 
+              type="password" 
+              autoFocus
+              value={unlockPasswordInput}
+              onChange={e => setUnlockPasswordInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleUnlockSubmit();
+              }}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-indigo-500 mb-4 text-slate-800"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setUnlockPromptVisible(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg text-sm">취소</button>
+              <button onClick={handleUnlockSubmit} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-500">확인</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
