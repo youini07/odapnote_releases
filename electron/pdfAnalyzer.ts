@@ -371,9 +371,17 @@ async function analyzeAndCropPage(
   for (const aq of normalizedQuestions) {
     // 문제 번호 정규화 (4자리 패딩 및 '번' 제거)
     let normalizedNumber = String(aq.number).replace(/번$/g, '').trim();
+    
+    // AI가 이미 P012_ 같은 페이지 번호를 붙여준 경우, 중복 방지를 위해 일단 제거
+    const pagePrefix = `P${String(pageCounter).padStart(3, '0')}_`;
+    normalizedNumber = normalizedNumber.replace(/^P\d{3}_/, '');
+
     if (/^\d+$/.test(normalizedNumber)) {
       normalizedNumber = normalizedNumber.padStart(4, '0');
     }
+
+    // DB 고유성 및 탐색기 정렬을 위해 최종 번호에 현재 페이지 번호를 한 번만 붙임
+    normalizedNumber = `${pagePrefix}${normalizedNumber}`;
 
     // 정규화된 bbox를 픽셀 좌표로 변환
     const left = Math.max(0, Math.floor(aq.bbox.x * pageWidth));
@@ -383,8 +391,8 @@ async function analyzeAndCropPage(
 
     if (width <= 0 || height <= 0) continue;
 
-    // 탐색기 미리보기 등에서 페이지 순차 정렬이 되도록 파일명 앞에 페이지 번호를 패딩하여 붙임 (예: P143_C01.png)
-    const fileBaseName = `P${String(pageCounter).padStart(3, '0')}_${normalizedNumber}`;
+    // 이미 normalizedNumber에 페이지 번호가 있으므로 그대로 사용
+    const fileBaseName = normalizedNumber;
     const outputPath = getQuestionImagePath(workbookId, fileBaseName);
 
     // crop만 수행 (리사이즈 없음) → 원본 DPI 보존
