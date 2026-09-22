@@ -108,6 +108,7 @@ export interface AppSettings {
   showTabSuneung?: boolean; // 수능/모의고사 탭 표시 여부
   showTabSchool?: boolean; // 학교기출 탭 표시 여부
   showTabMaterial?: boolean; // 자료/시험지 탭 표시 여부
+  useProLayout?: boolean; // Pro 모델로 레이아웃 분석 (정확도↑ 비용↑)
 }
 
 /** Electron API */

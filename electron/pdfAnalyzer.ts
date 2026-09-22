@@ -36,6 +36,25 @@ const BLANK_IMAGE_THRESHOLD = 5;
 // 왜 0.08? 같은 단에 속한 문제들의 x좌표는 보통 1~5% 이내로 유사
 const COLUMN_GROUP_THRESHOLD = 0.08;
 
+// [방어 2단계] 이전 페이지 대비 x좌표 허용 편차 (이보다 크면 이상치로 판단하고 보정)
+// 왜 0.08? 스캔된 PDF 특성상 약간의 픽셀 오차와 뒤틀림이 발생하므로 허용 범위를 넓힘 (5% -> 8%)
+const COLUMN_DEVIATION_THRESHOLD = 0.08;
+
+// [방어 3단계] 좌측 마진 안전 장치: 코드 레벨에서 강제 확보하는 최소 마진 비율
+// 왜 0.02? AI가 마진 지시를 무시해도 문제 번호가 잘리지 않도록 보장
+const LEFT_MARGIN_SAFETY = 0.02;
+
+/**
+ * 단(column) 레이아웃 정보 - 페이지 간 전파용
+ * 왜 필요? 같은 문제집은 거의 동일한 단 레이아웃을 유지하므로,
+ * 이전 페이지의 성공적인 단 구조를 다음 페이지에 참조값으로 전달하여
+ * AI가 단 기준점을 잘못 잡는 것을 방지
+ */
+interface ColumnLayout {
+  columns: Array<{ left: number; right: number }>;
+  pageNumber: number;
+}
+
 let sharpModule: any = null;
 async function getSharp() {
   if (!sharpModule) {
@@ -74,6 +93,35 @@ async function callGemini(ai: GoogleGenAI, contents: any[]) {
   throw lastErr;
 }
 
+/**
+ * Gemini Pro 모델 호출 헬퍼 (레이아웃 분석 등 고정밀 작업용)
+ */
+async function callGeminiPro(ai: GoogleGenAI, contents: any[]) {
+  const models = ['gemini-3.1-pro', 'gemini-2.5-pro', 'gemini-2.0-pro'];
+  let lastErr: any = null;
+  for (const model of models) {
+    try {
+      console.log(`[Gemini Pro] ${model} 모델에 이미지 분석 요청 중...`);
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+      });
+      console.log(`[Gemini Pro] 분석 완료 (성공)`);
+      return response;
+    } catch (err: any) {
+      lastErr = err;
+      const msg = err?.message || String(err);
+      console.warn(`[Gemini Pro] ${model} 모델 호출 실패:`, msg);
+      if (msg.includes('404') || msg.includes('not found') || msg.includes('NOT_FOUND') || msg.includes('unsupported') || msg.includes('400')) {
+        console.warn(`[Gemini Pro] ${model} 접근 불가, 다음 모델 시도 중...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 /**
@@ -101,6 +149,8 @@ async function isBlankImage(imagePath: string): Promise<boolean> {
  * 같은 페이지 내 문제들을 단(column) 기준으로 그룹핑하고,
  * 같은 단의 모든 문제 bbox를 동일한 너비(단 전체 너비)로 확장
  * 
+ * [개선] 이전 페이지의 단 구조를 참조하여 이상치를 감지하고 자동 보정
+ * 
  * 왜 필요? AI가 문제 내용에 맞게 타이트하게 bbox를 잡으면,
  * 짧은 문제(예: "0001 A(3),B(7)")의 이미지가 작아서
  * 오답노트에서 fit할 때 텍스트가 확대되어 보이는 문제를 해결
@@ -108,9 +158,18 @@ async function isBlankImage(imagePath: string): Promise<boolean> {
  * 같은 단이면 동일 너비 → 동일 텍스트 스케일 보장
  */
 function normalizeColumnWidths(
-  bboxes: Array<{ number: string; bbox: { x: number; y: number; width: number; height: number } }>
-): Array<{ number: string; bbox: { x: number; y: number; width: number; height: number } }> {
-  if (bboxes.length === 0) return bboxes;
+  bboxes: Array<{ number: string; bbox: { x: number; y: number; width: number; height: number } }>,
+  prevColumnLayout?: ColumnLayout
+): {
+  normalized: Array<{ number: string; bbox: { x: number; y: number; width: number; height: number } }>;
+  columnLayout: ColumnLayout;
+  hasOutlier: boolean;
+} {
+  if (bboxes.length === 0) return {
+    normalized: bboxes,
+    columnLayout: { columns: [], pageNumber: 0 },
+    hasOutlier: false
+  };
 
   // 1단계: x좌표 기준으로 문제들을 단(column)으로 그룹핑
   const sorted = [...bboxes].sort((a, b) => a.bbox.x - b.bbox.x);
@@ -135,12 +194,57 @@ function normalizeColumnWidths(
   // 단을 x좌표 순으로 정렬
   columns.sort((a, b) => Math.min(...a.map(q => q.bbox.x)) - Math.min(...b.map(q => q.bbox.x)));
 
+  const currentLayout: ColumnLayout = { columns: [], pageNumber: 0 };
+  let hasOutlier = false;
+  
+  // [방어 2단계] 이전 페이지 단 구조와 비교하여 이상치 감지 및 보정
+  // 왜? AI가 새 페이지에서 단 기준점을 크게 잘못 잡으면 해당 페이지 전체가 잘림
+  if (prevColumnLayout && prevColumnLayout.columns.length > 0 && columns.length === prevColumnLayout.columns.length) {
+    for (let i = 0; i < columns.length; i++) {
+      const col = columns[i];
+      const prevCol = prevColumnLayout.columns[i];
+      const currentLeft = Math.min(...col.map(q => q.bbox.x));
+      const deviation = currentLeft - prevCol.left;
+      
+      // x좌표가 이전 페이지보다 오른쪽으로 크게 이동한 경우 (좌측 잘림 위험 → 가장 치명적)
+      if (deviation > COLUMN_DEVIATION_THRESHOLD) {
+        console.warn(`[ColumnFix] 단 ${i+1} x좌표 이상치 감지: 현재=${currentLeft.toFixed(3)}, 이전=${prevCol.left.toFixed(3)}, 편차=+${deviation.toFixed(3)} → 이전 값으로 보정`);
+        hasOutlier = true;
+        for (const item of col) {
+          item.bbox.x = prevCol.left;
+        }
+      }
+      // x좌표가 왼쪽으로 크게 이동한 경우도 비정상이지만, 좌측 잘림보다는 덜 치명적
+      // 왼쪽으로의 편차가 매우 클 때만 보정 (10% 이상)
+      else if (deviation < -COLUMN_DEVIATION_THRESHOLD * 2) {
+        console.warn(`[ColumnFix] 단 ${i+1} x좌표 좌측 이상치: 현재=${currentLeft.toFixed(3)}, 이전=${prevCol.left.toFixed(3)}, 편차=${deviation.toFixed(3)} → 이전 값으로 보정`);
+        hasOutlier = true;
+        for (const item of col) {
+          item.bbox.x = prevCol.left;
+        }
+      }
+    }
+  } else if (prevColumnLayout && prevColumnLayout.columns.length > 0 && columns.length !== prevColumnLayout.columns.length) {
+    // 단 개수가 다른 경우: 페이지 레이아웃이 변경되었을 수 있음 (1단↔2단 전환 등)
+    // 이 경우 이전 레이아웃을 강제 적용하지 않고 경고만 출력
+    console.warn(`[ColumnFix] 단 개수 변화 감지: 이전=${prevColumnLayout.columns.length}단, 현재=${columns.length}단 → 보정 생략 (레이아웃 전환 가능성)`);
+  }
+
   const normalized: typeof bboxes = [];
   
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
     // 단의 왼쪽 경계: 현재 단에서 가장 작은 x값
-    const colLeft = Math.min(...col.map(q => q.bbox.x));
+    const rawColLeft = Math.min(...col.map(q => q.bbox.x));
+    
+    // [방어 3단계] 좌측 마진 안전 장치
+    // AI가 마진 지시를 무시해도 코드에서 최소 마진을 강제 확보
+    let colLeft = Math.max(0, rawColLeft - LEFT_MARGIN_SAFETY);
+    // 이전 단의 우측 경계를 침범하지 않도록 가드
+    if (i > 0 && currentLayout.columns.length > 0) {
+      const prevColRight = currentLayout.columns[i - 1].right;
+      colLeft = Math.max(colLeft, prevColRight + 0.005);
+    }
     
     // 단의 오른쪽 경계 결정:
     // 1. AI가 반환한 해당 단 문제들의 실제 오른쪽 끝(x + width) 중 최대값 사용
@@ -162,6 +266,9 @@ function normalizeColumnWidths(
     const colWidth = colRight - colLeft;
 
     console.log(`[ColumnNorm] 단 ${i+1}: x=${colLeft.toFixed(3)}, right=${colRight.toFixed(3)}, width=${colWidth.toFixed(3)}, 문제 ${col.length}개`);
+    
+    // 현재 단 구조를 레이아웃에 기록 (다음 페이지에 전파용)
+    currentLayout.columns.push({ left: colLeft, right: colRight });
 
     for (const item of col) {
       normalized.push({
@@ -176,7 +283,7 @@ function normalizeColumnWidths(
     }
   }
 
-  return normalized;
+  return { normalized, columnLayout: currentLayout, hasOutlier };
 }
 
 /**
@@ -246,7 +353,7 @@ function findMissingNumbers(questions: Question[]): { missing: string[]; pages: 
 /**
  * 기본 AI 프롬프트 생성
  */
-function buildPrompt(typeLabel: string, pageNumber: number, extraHints?: string, startNumber?: string): string {
+function buildPrompt(typeLabel: string, pageNumber: number, extraHints?: string, startNumber?: string, prevColumnLayout?: ColumnLayout): string {
   let prompt = `
 이 이미지는 ${typeLabel}의 ${pageNumber}페이지입니다.
 이 페이지에 있는 '모든 문제 번호'와 '해당 문제의 전체 영역(bbox)'을 찾아주세요.
@@ -257,6 +364,7 @@ function buildPrompt(typeLabel: string, pageNumber: number, extraHints?: string,
 2. 각 문제의 bbox는 **자신이 속한 단(column) 내에서만** 설정해야 합니다. 절대로 다른 단의 영역을 침범하면 안 됩니다.
 3. 2단 구성일 경우: 좌측 단 문제의 bbox width는 대략 0.45~0.5 이내, 우측 단도 마찬가지입니다. 한 문제의 width가 0.7 이상이 되면 안 됩니다(1단 전체 폭 문제가 아닌 한).
 4. 유형 설명이나 개념 정리 등 '문제 번호가 없는 영역'은 무시하세요. 오직 문제 번호가 있는 실제 문제만 추출합니다.
+5. [2단 레이아웃 x좌표 가이드] 일반적으로 좌측 단의 문제 번호는 x=0.02~0.08 범위에서 시작합니다. 좌측 단의 x가 0.10 이상이면 문제 번호가 잘릴 위험이 있으니, 반드시 문제 번호 왼쪽 끝에 충분한 여유를 두세요.
 
 [영역(bbox) 추출 핵심 규칙]
 1. bbox는 '문제 번호'부터 시작하여, 해당 문제에 속하는 '텍스트', '보기', '그림', '그래프'를 모두 포함하는 박스여야 합니다.
@@ -291,6 +399,19 @@ function buildPrompt(typeLabel: string, pageNumber: number, extraHints?: string,
 이 형식을 염두에 두고 빠짐없이 문제를 찾아주세요.\n`;
   }
 
+  // [방어 1단계] 이전 페이지의 성공적인 단 구조를 AI에 참조값으로 전달
+  if (prevColumnLayout && prevColumnLayout.columns.length > 0) {
+    prompt += `\n[이전 페이지 참조 레이아웃 - 매우 중요]\n`;
+    prompt += `이전 페이지(${prevColumnLayout.pageNumber}페이지)에서 성공적으로 분석된 단(column) 구조는 다음과 같습니다:\n`;
+    for (let i = 0; i < prevColumnLayout.columns.length; i++) {
+      const col = prevColumnLayout.columns[i];
+      prompt += `  - ${i + 1}단: x 시작=${col.left.toFixed(3)}, x 끝=${col.right.toFixed(3)}\n`;
+    }
+    prompt += `같은 문제집이므로 이 페이지도 거의 동일한 단 구조를 가질 가능성이 높습니다.\n`;
+    prompt += `각 문제의 bbox x좌표를 이 참조값 근처로 설정해주세요.\n`;
+    prompt += `특히 좌측 단의 x 시작점이 참조값보다 오른쪽으로 5% 이상 밀려서는 안 됩니다.\n`;
+  }
+
   if (extraHints) {
     prompt += `\n${extraHints}\n`;
   }
@@ -308,6 +429,118 @@ function buildPrompt(typeLabel: string, pageNumber: number, extraHints?: string,
 x, y, width, height는 페이지 전체 너비/높이 대비 비율(0~1)입니다.
 규칙: 모든 문제를 빠짐없이 적어주세요.
 `;
+  return prompt;
+}
+
+/**
+ * Pro 모델을 사용하여 페이지의 레이아웃(단 구조)만 분석
+ */
+async function analyzePageLayout(
+  ai: GoogleGenAI,
+  pageImgPath: string,
+  pageCounter: number,
+  typeLabel: string
+): Promise<ColumnLayout | null> {
+  const base64Img = fs.readFileSync(pageImgPath).toString('base64');
+  const prompt = `
+이 이미지는 ${typeLabel}의 ${pageCounter}페이지입니다.
+이 페이지의 전체적인 단(column) 레이아웃 구조만 파악해서 JSON으로 반환해주세요.
+
+[규칙]
+1. 이 페이지가 1단인지 2단(좌/우)인지 파악하세요.
+2. 각 단의 x 시작점(left)과 x 끝점(right)을 0~1 사이 비율로 반환하세요.
+3. 예를 들어 2단이라면 좌측 단은 약 x:0.03~0.47, 우측 단은 약 x:0.50~0.97 정도일 것입니다.
+
+반드시 아래와 같은 JSON 배열로 반환하세요. 마크다운(\`\`\`) 없이 순수 JSON만 반환하세요:
+[
+  { "left": 0.03, "right": 0.47 },
+  { "left": 0.50, "right": 0.97 }
+]
+`;
+
+  try {
+    const response = await callGeminiPro(ai, [
+      {
+        inlineData: {
+          data: base64Img,
+          mimeType: 'image/png'
+        }
+      },
+      prompt
+    ]);
+
+    const jsonStr = (response.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(jsonStr);
+    
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      console.log(`[Pro Layout] p.${pageCounter} 분석 성공: ${parsed.length}단 구조`);
+      return { columns: parsed, pageNumber: pageCounter };
+    }
+  } catch (err: any) {
+    console.error(`[Pro Layout] 분석 실패:`, err.message);
+  }
+  return null;
+}
+
+/**
+ * 확정된 레이아웃(Pro 결과)을 바탕으로 Flash에게 구체적인 범위를 지정하는 프롬프트 생성
+ */
+function buildPromptWithLayout(typeLabel: string, pageNumber: number, layout: ColumnLayout, extraHints?: string, startNumber?: string): string {
+  let prompt = `
+이 이미지는 ${typeLabel}의 ${pageNumber}페이지입니다.
+이 페이지에 있는 '모든 문제 번호'와 '해당 문제의 전체 영역(bbox)'을 찾아주세요.
+
+[강제 레이아웃 제한 - 최우선]
+이 페이지는 ${layout.columns.length}단 구조입니다.
+각 단의 경계는 다음과 같이 엄격하게 정해져 있습니다:
+`;
+  
+  for (let i = 0; i < layout.columns.length; i++) {
+    const col = layout.columns[i];
+    prompt += `- ${i + 1}단: x 시작=${col.left.toFixed(3)}, x 끝=${col.right.toFixed(3)}\n`;
+  }
+
+  prompt += `
+반드시 위의 경계 안에서만 해당 단의 문제를 찾고, bbox의 x좌표와 width가 다른 단을 침범하지 않도록 설정하세요.
+
+[영역(bbox) 추출 핵심 규칙]
+1. bbox는 '문제 번호'부터 시작하여, 해당 문제에 속하는 '텍스트', '보기', '그림', '그래프'를 모두 포함하는 박스여야 합니다.
+2. 만약 문제에 그림/도형이 포함되어 있다면 그 그림까지 반드시 bbox에 포함시키세요. 그림이 문제 번호 옆이나 아래에 있을 수 있습니다.
+3. [중요] bbox의 아래쪽 경계(height)는 해당 문제의 마지막 텍스트나 도형이 끝나는 지점에 맞춰 다음 문제 전까지의 불필요한 빈 공간은 최소화하세요.
+4. [매우 중요] bbox의 가로 폭(width)은 절대 마지막 줄의 길이에 맞추어 좁게 줄이면 안 됩니다. 문제 내용 중 가장 가로로 긴 텍스트나 그림을 기준으로 하되, 자신이 속한 단의 x 끝(right)을 넘지 않게 설정하세요.
+5. bbox의 x 좌표(왼쪽 경계)는 문제 번호가 왼쪽에서 잘리지 않도록 1~2% 정도 여유를 두고 시작하세요. 좌측 단의 문제 번호 시작 x좌표가 너무 커지면 안 됩니다.
+
+[빈 공간 및 오인식 방지 규칙]
+1. bbox 안에 반드시 '문제 번호'가 명확하게 보여야 합니다.
+2. 문제 번호가 없는 '유형 설명', '개념 정리', '공식', '페이지 번호', '장식' 등은 절대 추출하지 마세요.
+
+[문제 번호 추출 규칙]
+1. 문제 번호는 보통 문단의 맨 왼쪽(좌상단)에 위치합니다. 
+2. 문제 번호 뒤에 '번'이라는 글자가 있다면 제거해주세요. (예: "0001번" -> "0001")
+3. 단순한 숫자가 아닐 수 있습니다 (예: "1-01").
+`;
+
+  if (startNumber) {
+    prompt += `\n[힌트] 이 페이지의 첫 문제 번호는 '${startNumber}' 주변일 가능성이 높습니다. (또는 이전 페이지 마지막 문제 다음 번호)\n`;
+  }
+
+  prompt += `
+결과는 아래 JSON 형식에 맞춰 반환해 주세요:
+{
+  "questions": [
+    {
+      "number": "0001",
+      "bbox": { "x": 0.05, "y": 0.1, "width": 0.40, "height": 0.15 }
+    }
+  ]
+}
+마크다운 태그 없이 순수 JSON 텍스트만 출력해 주세요.
+`;
+
+  if (extraHints) {
+    prompt += `\n${extraHints}\n`;
+  }
+
   return prompt;
 }
 
@@ -344,13 +577,42 @@ async function analyzeAndCropPage(
   workbookId: string,
   typeLabel: string,
   extraHints?: string,
-  startNumber?: string
-): Promise<Question[]> {
+  startNumber?: string,
+  prevColumnLayout?: ColumnLayout,
+  useProLayout: boolean = false,
+  forceProFullAnalysis: boolean = false
+): Promise<{ questions: Question[]; columnLayout: ColumnLayout | null }> {
   const sharp = await getSharp();
   const base64Img = fs.readFileSync(pageImgPath).toString('base64');
-  const prompt = buildPrompt(typeLabel, pageCounter, extraHints, startNumber);
+  
+  let targetAiCall = callGemini;
+  let prompt = '';
+  let layoutToUse = prevColumnLayout;
+  
+  if (forceProFullAnalysis) {
+    // 3단계: 이상치 감지로 인한 Pro 전체 재분석 (Pro가 레이아웃 + 추출 모두 수행)
+    targetAiCall = callGeminiPro;
+    prompt = buildPrompt(typeLabel, pageCounter, "[Pro 폴백 모드] 각 단의 레이아웃을 정확하게 파악하고, 단의 범위를 벗어나지 않도록 각별히 주의하여 문제를 추출하세요.", startNumber, prevColumnLayout);
+    console.log(`[Pro Fallback] p.${pageCounter} - Pro 모델로 전체 재분석 실행`);
+  } else if (useProLayout) {
+    // 1단계: Pro 레이아웃 분석
+    const proLayout = await analyzePageLayout(ai, pageImgPath, pageCounter, typeLabel);
+    if (proLayout && proLayout.columns.length > 0) {
+      layoutToUse = proLayout;
+      // 2단계: 확정된 레이아웃 기반 Flash 프롬프트
+      prompt = buildPromptWithLayout(typeLabel, pageCounter, layoutToUse, extraHints, startNumber);
+      console.log(`[Flash Extract] p.${pageCounter} - Pro 레이아웃(${proLayout.columns.length}단) 기반 문제 추출`);
+    } else {
+      // Pro 실패 시 기존 방식 폴백
+      prompt = buildPrompt(typeLabel, pageCounter, extraHints, startNumber, prevColumnLayout);
+      console.warn(`[Pro Layout Fail] p.${pageCounter} - 기존 방식으로 폴백`);
+    }
+  } else {
+    // 기존 로직 (Flash 단독)
+    prompt = buildPrompt(typeLabel, pageCounter, extraHints, startNumber, prevColumnLayout);
+  }
 
-  const response = await callGemini(ai, [
+  const response = await targetAiCall(ai, [
     {
       role: 'user',
       parts: [
@@ -362,9 +624,16 @@ async function analyzeAndCropPage(
 
   const rawQuestions = parseAiResponse(response.text || '');
   
-  // [핵심 개선] 같은 단의 문제들을 동일 너비로 정규화
+  // [핵심 개선] 같은 단의 문제들을 동일 너비로 정규화 + 이전 페이지/Pro 기반 이상치 보정
   // 리사이즈 없이 원본 DPI를 유지하면서, 같은 단 내 crop 너비만 통일
-  const normalizedQuestions = normalizeColumnWidths(rawQuestions);
+  let { normalized: normalizedQuestions, columnLayout, hasOutlier } = normalizeColumnWidths(rawQuestions, layoutToUse);
+  columnLayout.pageNumber = pageCounter;
+
+  // useProLayout 모드에서 Flash로 분석했는데 이상치가 감지되었다면 Pro로 해당 페이지 전체 재분석 (재귀 호출)
+  if (useProLayout && !forceProFullAnalysis && hasOutlier) {
+    console.warn(`[Outlier Trigger] p.${pageCounter} Flash 분석 중 이상치 감지됨. Pro 폴백 재분석 시작`);
+    return analyzeAndCropPage(ai, pageImgPath, pageCounter, pageWidth, pageHeight, workbookId, typeLabel, extraHints, startNumber, prevColumnLayout, true, true);
+  }
   
   const pageQuestions: Question[] = [];
 
@@ -422,7 +691,7 @@ async function analyzeAndCropPage(
     });
   }
 
-  return pageQuestions;
+  return { questions: pageQuestions, columnLayout: pageQuestions.length > 0 ? columnLayout : null };
 }
 
 /**
@@ -472,6 +741,11 @@ export async function createPdfIndex(
   // 페이지별 이미지 경로와 메타데이터 보존 (재분석 시 사용)
   const pageDataMap: Map<number, { imgPath: string; width: number; height: number }> = new Map();
   
+  // [방어 1단계] 이전 페이지의 단 구조를 추적하여 다음 페이지에 전파
+  // 같은 문제집의 페이지들은 거의 동일한 단 레이아웃을 공유하므로,
+  // 이전 페이지의 성공적인 분석 결과를 다음 페이지에 힌트로 제공
+  let prevColumnLayout: ColumnLayout | undefined;
+  
   // ===== Phase 1: 페이지별 순차 분석 =====
   // 대용량 PDF 로드 시 메모리 초과 방지를 위해 Buffer 대신 Path 전달 & 해상도 최적화 (scale: 4로 상향하여 낮은 해상도 이슈 해결)
   const document = await pdf(pdfPath, { scale: 4 });
@@ -485,7 +759,7 @@ export async function createPdfIndex(
   const processChunk = async (chunk: Array<{ buffer: Buffer; pageCounter: number }>) => {
     const promises = chunk.map(async ({ buffer, pageCounter }) => {
       const token = cancelToken || workbookId;
-      if (activeAnalyses[token]?.abort) return [];
+      if (activeAnalyses[token]?.abort) return { questions: [] as Question[], columnLayout: null as ColumnLayout | null };
       
       const percent = Math.floor((pageCounter / totalPages) * 85);
       onProgress(`[1/2] PDF ${pageCounter}/${totalPages}페이지 분석 및 이미지 크롭 중...`, percent);
@@ -499,6 +773,7 @@ export async function createPdfIndex(
       pageDataMap.set(pageCounter, { imgPath: pageImgPath, width: pageWidth, height: pageHeight });
 
       let pageQuestions: Question[] = [];
+      let pageColumnLayout: ColumnLayout | null = null;
       let retryCount = 0;
       const maxRetries = 3;
 
@@ -506,13 +781,17 @@ export async function createPdfIndex(
         if (activeAnalyses[token]?.abort) break;
 
         try {
+          const isProFallback = !!settings.useProLayout && retryCount > 0;
+          
           const extraHints = retryCount > 0 ? 
-            "[주의] 이전 분석에서 문제를 하나도 찾지 못했습니다. 이 페이지에는 문제가 존재할 가능성이 높습니다. 엄격한 규칙을 조금 완화하여, 약간 흐릿하거나 형태가 독특하더라도 문제 번호로 보이는 것을 최대한 추출해 보세요." 
+            "[주의] 이전 분석에서 문제를 찾지 못했거나 오류가 발생했습니다. 엄격한 규칙을 완화하여 번호를 최대한 추출해 보세요." 
             : undefined;
             
-          pageQuestions = await analyzeAndCropPage(
-            ai, pageImgPath, pageCounter, pageWidth, pageHeight, workbookId, typeLabel, extraHints, startNumber
+          const result = await analyzeAndCropPage(
+            ai, pageImgPath, pageCounter, pageWidth, pageHeight, workbookId, typeLabel, extraHints, startNumber, prevColumnLayout, !!settings.useProLayout, isProFallback
           );
+          pageQuestions = result.questions;
+          pageColumnLayout = result.columnLayout;
           
           if (pageQuestions.length > 0) {
             break; 
@@ -532,12 +811,19 @@ export async function createPdfIndex(
       if (!activeAnalyses[token]?.abort && pageQuestions.length === 0) {
         console.error(`[Critical] p.${pageCounter} 분석 3회 재시도 모두 실패 또는 문제 없음으로 판정됨.`);
       }
-      return pageQuestions;
+      return { questions: pageQuestions, columnLayout: pageColumnLayout };
     });
 
     const results = await Promise.all(promises);
     for (const res of results) {
-      allQuestions.push(...res);
+      allQuestions.push(...res.questions);
+    }
+    // [방어 1단계] 마지막 페이지의 단 구조를 다음 chunk에 전파
+    // 같은 문제집이면 단 구조가 거의 동일하므로, 성공한 레이아웃을 계속 참조
+    const lastResultWithLayout = [...results].reverse().find(r => r.columnLayout !== null);
+    if (lastResultWithLayout?.columnLayout) {
+      prevColumnLayout = lastResultWithLayout.columnLayout;
+      console.log(`[LayoutPropagation] 단 구조 전파: ${prevColumnLayout!.columns.length}단, 페이지 ${prevColumnLayout!.pageNumber}`);
     }
     
     try {
@@ -639,9 +925,10 @@ export async function createPdfIndex(
 `;
 
       try {
-        const retryQuestions = await analyzeAndCropPage(
-          ai, pageData.imgPath, retryPage, pageData.width, pageData.height, workbookId, typeLabel, extraHints, startNumber
+        const result = await analyzeAndCropPage(
+          ai, pageData.imgPath, retryPage, pageData.width, pageData.height, workbookId, typeLabel, extraHints, startNumber, prevColumnLayout, !!settings.useProLayout, !!settings.useProLayout // 재분석 시 Pro 사용 켜져있으면 Pro 전체 분석으로 시도
         );
+        const retryQuestions = result.questions;
 
         for (const q of retryQuestions) {
           if (!existingNumbers.has(q.number)) {

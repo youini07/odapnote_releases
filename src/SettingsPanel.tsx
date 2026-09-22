@@ -413,6 +413,29 @@ export default function SettingsPanel({ token, onSettingsChange }: SettingsPanel
                   </select>
                 </div>
 
+                {/* Pro 레이아웃 분석 모드 */}
+                <div className="pt-2 border-t border-slate-200 mt-4">
+                  <label className="block text-xs text-slate-500 mb-1.5 font-medium flex items-center justify-between">
+                    <span>Pro 레이아웃 분석</span>
+                    <span className="text-[10px] text-violet-400 bg-violet-400/10 px-2 py-0.5 rounded">고정밀 모드</span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+                    각 페이지의 단(column) 구조를 Gemini Pro로 정밀 분석합니다.<br/>
+                    문제가 잘리는 현상이 크게 줄어들지만, API 비용이 증가합니다.
+                  </p>
+                  <div
+                    onClick={() => setSettings({ ...settings, useProLayout: !settings.useProLayout })}
+                    className="flex items-center justify-between px-3 py-2.5 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-violet-400 transition-colors"
+                  >
+                    <span className="text-sm text-slate-700">
+                      {settings.useProLayout ? '✅ Pro 레이아웃 활성화됨' : '⬜ 비활성화 (Flash 단독)'}
+                    </span>
+                    <div className={`w-10 h-5 rounded-full transition-colors ${settings.useProLayout ? 'bg-violet-500' : 'bg-slate-300'}`}>
+                      <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${settings.useProLayout ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </div>
+                  </div>
+                </div>
+
                                 {/* 학원 이름 설정 */}
                 <div className="pt-5 border-t border-slate-200 mt-5">
                   <label className="block text-xs text-slate-500 mb-1.5 font-medium">학원 이름 (상단 고정)</label>
