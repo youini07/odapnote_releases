@@ -471,6 +471,7 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
                       <!DOCTYPE html>
                       <html>
                       <head>
+                        <base href="${window.location.href}">
                         ${headHtml}
                         <style>
                           body { background: white !important; margin: 0; padding: 20px; display: block; overflow: visible; height: auto; }
