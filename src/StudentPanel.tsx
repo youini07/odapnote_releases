@@ -466,6 +466,17 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
                     const printArea = document.getElementById('print-area');
                     if (!printArea) return alert('인쇄 영역을 찾을 수 없습니다.');
                     
+                    let inlineStyles = '';
+                    try {
+                      Array.from(document.styleSheets).forEach(sheet => {
+                        try {
+                          Array.from(sheet.cssRules).forEach(rule => {
+                            inlineStyles += rule.cssText + '\n';
+                          });
+                        } catch(e) {}
+                      });
+                    } catch(e) {}
+
                     const headHtml = document.head.innerHTML.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
                     const html = `
                       <!DOCTYPE html>
@@ -474,6 +485,7 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
                         <base href="${window.location.href}">
                         ${headHtml}
                         <style>
+                          ${inlineStyles}
                           body { background: white !important; margin: 0; padding: 20px; display: block; overflow: visible; height: auto; }
                           #print-area { box-shadow: none !important; max-width: none !important; max-height: none !important; border: none !important; height: auto !important; position: static !important; display: block !important; }
                           .print-hide { display: none !important; }
