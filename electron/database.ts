@@ -179,7 +179,12 @@ export function deleteQuestions(workbookId: string, questionIds: string[]): { su
 
 // 번호 정규화 유틸리티
 function normalizeNumber(num: string): string {
-  let cleaned = String(num).replace(/번$/g, '').trim();
+  // P002_0740 와 같은 페이지 접두사 제거
+  let cleaned = String(num).replace(/^P\d+[_ \-]/i, '');
+  // 맨 앞, 맨 뒤의 특수문자 제거 (점, 괄호, 샵 등)
+  cleaned = cleaned.replace(/^[^a-zA-Z0-9가-힣]+/, '').replace(/[^a-zA-Z0-9가-힣]+$/, '');
+  cleaned = cleaned.replace(/번$/g, '').trim();
+  
   if (/^\d+$/.test(cleaned)) {
     return cleaned.padStart(4, '0');
   }
@@ -195,6 +200,10 @@ export function getQuestionsByNumbers(workbookId: string, numbers: string[]): Qu
 
 /** 문제에 답안 이미지 매칭 */
 export function matchAnswerImages(studentWorkbookId: string, teacherWorkbookId: string): void {
+  const workbooks = getWorkbooks();
+  const teacherWorkbook = workbooks.find(w => w.id === teacherWorkbookId);
+  if (!teacherWorkbook) return;
+
   const studentQuestions = getQuestions(studentWorkbookId);
   const teacherQuestions = getQuestions(teacherWorkbookId);
   
@@ -202,7 +211,12 @@ export function matchAnswerImages(studentWorkbookId: string, teacherWorkbookId: 
   for (const sq of studentQuestions) {
     const matchingAnswer = teacherQuestions.find(tq => normalizeNumber(tq.number) === normalizeNumber(sq.number));
     if (matchingAnswer) {
-      sq.answerImagePath = matchingAnswer.imagePath;
+      if (teacherWorkbook.type === 'teacher_quick') {
+        sq.answerText = matchingAnswer.answerText;
+        // 기존 이미지 경로는 덮어쓰지 않거나 빈 값 유지
+      } else {
+        sq.answerImagePath = matchingAnswer.imagePath;
+      }
     }
   }
   

@@ -4,7 +4,7 @@
 // ================================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Trash2, Edit2, FileText, Calendar, Hash, X, Save, Printer, FolderOpen } from 'lucide-react';
+import { Users, UserPlus, Trash2, Edit2, FileText, Calendar, Hash, X, Save, Printer, FolderOpen, CheckSquare } from 'lucide-react';
 import type { Student, OdapNoteRecord } from './types';
 
 export default function StudentPanel() {
@@ -86,9 +86,9 @@ export default function StudentPanel() {
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
   return (
-    <div className="p-6 flex gap-6 h-full">
+    <div className="p-6 flex gap-6 h-full print:p-0 print:h-auto print:block">
       {/* 왼쪽: 학생 목록 */}
-      <div className="w-80 shrink-0 flex flex-col">
+      <div className="w-80 shrink-0 flex flex-col print:hidden">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <Users size={20} className="text-indigo-600" />
@@ -166,7 +166,7 @@ export default function StudentPanel() {
       </div>
 
       {/* 오른쪽: 선택된 학생의 오답노트 기록 */}
-      <div className="flex-1 bg-white/50 rounded-xl border border-slate-200 p-5 overflow-y-auto">
+      <div className="flex-1 bg-white/50 rounded-xl border border-slate-200 p-5 flex flex-col min-w-0 print:hidden">
         {selectedStudent ? (
           <>
             <div className="flex items-center justify-between mb-4">
@@ -299,6 +299,11 @@ export default function StudentPanel() {
 function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNoteRecord, studentId: string, onDeleted?: () => void }) {
   const [layout, setLayout] = useState<number>(4);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
+  const [answerViewMode, setAnswerViewMode] = useState<'both' | 'answerOnly'>('both');
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [images, setImages] = useState<Record<string, string>>({});
+  const [isLoadingAnswers, setIsLoadingAnswers] = useState(false);
 
   const handlePrint = async () => {
     if (record.exportedPath) {
@@ -325,6 +330,44 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
       } else if (!res.success) {
         alert(`삭제 실패: ${res.error}`);
       }
+    }
+  };
+
+  const handleShowAnswers = async () => {
+    setShowAnswers(true);
+    setIsLoadingAnswers(true);
+    
+    try {
+      const allQs = await window.electronAPI.getQuestions(record.workbookId);
+      
+      const matchedQs = allQs.filter(q => record.questionNumbers.includes(q.number));
+      // 번호순 정렬
+      matchedQs.sort((a, b) => {
+        const numA = parseInt(a.number.replace(/[^0-9]/g, ''), 10);
+        const numB = parseInt(b.number.replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return a.number.localeCompare(b.number);
+      });
+      
+      setQuestions(matchedQs);
+      
+      const newImages: Record<string, string> = {};
+      for (const q of matchedQs) {
+        if (q.imagePath) {
+          const b64 = await window.electronAPI.readImageAsBase64(q.imagePath);
+          if (b64) newImages[`prob_${q.id}`] = b64;
+        }
+        if (q.answerImagePath) {
+          const b64 = await window.electronAPI.readImageAsBase64(q.answerImagePath);
+          if (b64) newImages[`ans_${q.id}`] = b64;
+        }
+      }
+      setImages(newImages);
+    } catch (e) {
+      console.error(e);
+      alert('정답 데이터를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoadingAnswers(false);
     }
   };
 
@@ -370,6 +413,13 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
               <Printer size={14} />
             </button>
             <button
+              onClick={handleShowAnswers}
+              className="p-1.5 text-slate-500 hover:text-green-500 hover:bg-green-500/10 rounded-md transition-colors"
+              title="답안지 보기"
+            >
+              <CheckSquare size={14} />
+            </button>
+            <button
               onClick={handleOpenFolder}
               className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-500/10 rounded-md transition-colors"
               title="폴더 열기"
@@ -386,6 +436,145 @@ function OdapNoteRecordCard({ record, studentId, onDeleted }: { record: OdapNote
           </>
         )}
       </div>
+
+      {/* 답안지 보기 모달 */}
+      {showAnswers && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 print:static print:block print:bg-transparent print:p-0">
+          <div id="print-area" className="bg-white rounded-2xl w-full max-w-5xl shadow-xl flex flex-col max-h-[85vh] print-expand print:max-w-none print:shadow-none print:rounded-none">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0 print-hide">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <CheckSquare className="text-green-500" size={20} />
+                {record.name} 답안지
+              </h2>
+              <div className="flex items-center gap-3">
+                <div className="flex bg-slate-100 rounded-lg p-1">
+                  <button 
+                    onClick={() => setAnswerViewMode('both')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${answerViewMode === 'both' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    문제 포함
+                  </button>
+                  <button 
+                    onClick={() => setAnswerViewMode('answerOnly')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${answerViewMode === 'answerOnly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    답안만
+                  </button>
+                </div>
+                <button
+                  onClick={async () => {
+                    const printArea = document.getElementById('print-area');
+                    if (!printArea) return alert('인쇄 영역을 찾을 수 없습니다.');
+                    
+                    const headHtml = document.head.innerHTML.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                    const html = `
+                      <!DOCTYPE html>
+                      <html>
+                      <head>
+                        ${headHtml}
+                        <style>
+                          body { background: white !important; margin: 0; padding: 20px; display: block; overflow: visible; height: auto; }
+                          #print-area { box-shadow: none !important; max-width: none !important; max-height: none !important; border: none !important; height: auto !important; position: static !important; display: block !important; }
+                          .print-hide { display: none !important; }
+                        </style>
+                      </head>
+                      <body>
+                        ${printArea.outerHTML}
+                      </body>
+                      </html>
+                    `;
+                    
+                    const res = await window.electronAPI.printPreview(html);
+                    if (!res.success) alert('미리보기 생성에 실패했습니다: ' + res.error);
+                  }}
+                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                >
+                  <FileText size={14} /> PDF로 미리보기
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                >
+                  <Printer size={14} /> 바로 인쇄
+                </button>
+                <button
+                  onClick={() => setShowAnswers(false)}
+                  className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-50 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 print-expand print:p-0 print:bg-white">
+              <div className="hidden print:block text-2xl font-bold text-center mb-6">{record.name} 정답지</div>
+              {isLoadingAnswers ? (
+                <div className="flex justify-center py-12 text-slate-500">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mr-3"></div>
+                  불러오는 중...
+                </div>
+              ) : questions.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  매칭된 문제 데이터가 없습니다.
+                </div>
+              ) : answerViewMode === 'answerOnly' ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-2 print:grid-cols-5 print:gap-x-6 print:gap-y-3">
+                  {questions.map((q) => (
+                    <div key={q.id} className="flex items-center gap-3 py-1.5 border-b border-dashed border-slate-200 break-inside-avoid">
+                      <div className="w-12 text-right font-bold text-slate-500 text-sm shrink-0">
+                        {q.number.replace(/^P\d+[_ \-]/, '')}
+                      </div>
+                      <div className="flex-1 font-medium text-slate-800 text-sm flex items-center min-w-0">
+                        {q.answerText ? (
+                          <span className="whitespace-pre-wrap leading-tight">{q.answerText}</span>
+                        ) : images[`ans_${q.id}`] ? (
+                          <img src={images[`ans_${q.id}`]} alt="정답 이미지" className="max-h-12 max-w-full object-contain" />
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">없음</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6 print:space-y-4">
+                  {questions.map((q) => (
+                    <div key={q.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm print:shadow-none print:border-slate-300 break-inside-avoid">
+                      <div className="bg-slate-100/50 px-4 py-2 border-b border-slate-200 font-semibold text-slate-700 flex justify-between print:bg-slate-100">
+                        <span>#{q.number.replace(/^P\d+[_ \-]/, '')}</span>
+                      </div>
+                      
+                      <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 print:flex-row print:divide-y-0 print:divide-x">
+                        {/* 문제 영역 */}
+                        <div className="flex-1 p-4">
+                          <div className="text-xs text-slate-400 mb-2 font-medium">문제</div>
+                          {images[`prob_${q.id}`] ? (
+                            <img src={images[`prob_${q.id}`]} alt="문제 이미지" className="max-w-full rounded border border-slate-100" />
+                          ) : (
+                            <div className="text-slate-400 text-sm italic">이미지가 없습니다</div>
+                          )}
+                        </div>
+                        
+                        {/* 정답 영역 */}
+                        <div className="flex-1 p-4 bg-green-50/30 print:bg-transparent">
+                          <div className="text-xs text-green-600 mb-2 font-medium print:text-slate-500">정답/해설</div>
+                          {q.answerText ? (
+                            <div className="text-slate-800 whitespace-pre-wrap font-medium">{q.answerText}</div>
+                          ) : images[`ans_${q.id}`] ? (
+                            <img src={images[`ans_${q.id}`]} alt="정답 이미지" className="max-w-full rounded border border-slate-100" />
+                          ) : (
+                            <div className="text-slate-400 text-sm italic">매칭된 정답이 없습니다</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

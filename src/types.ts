@@ -6,7 +6,7 @@
 export interface ElectronAPI {
   // 문제집 관리
   selectPdfFile: () => Promise<string | null>;
-  analyzePdf: (filePath: string, type: 'student' | 'teacher', startNumber?: string, analyzeStartPage?: number, analyzeEndPage?: number, workbookId?: string) => Promise<{
+  analyzePdf: (filePath: string, type: 'student' | 'teacher' | 'teacher_quick', startNumber?: string, analyzeStartPage?: number, analyzeEndPage?: number, workbookId?: string) => Promise<{
     success: boolean;
     workbook?: Workbook;
     questionCount?: number;
@@ -46,6 +46,7 @@ export interface ElectronAPI {
     error?: string;
   }>;
   exportFile: (odapNoteId: string, format: 'pdf' | 'hwpx') => Promise<any>;
+  printPreview: (htmlString?: string) => Promise<{ success: boolean; error?: string }>;
   printOdapNote: (filePath: string) => Promise<{ success: boolean; error?: string }>;
   printOdapNoteWithLayout: (studentId: string, recordId: string, layout: number) => Promise<{ success: boolean; error?: string; isFallback?: boolean }>;
   deleteOdapNoteRecord: (studentId: string, recordId: string) => Promise<{ success: boolean; error?: string }>;
@@ -86,7 +87,7 @@ export interface Workbook {
   name: string;
   fileName: string;
   filePath: string;
-  type: 'student' | 'teacher';
+  type: 'student' | 'teacher' | 'teacher_quick';
   pairedWorkbookId?: string;
   analyzedAt: string;
   totalQuestions: number;
@@ -109,6 +110,7 @@ export interface Question {
   type: '객관식' | '주관식' | '미분류';
   imagePath: string;
   answerImagePath?: string;
+  answerText?: string;
   textContent?: string;
   bbox: { x: number; y: number; width: number; height: number };
 }

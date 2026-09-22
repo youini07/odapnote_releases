@@ -8,7 +8,7 @@ export interface Workbook {
   name: string;           // 문제집 이름 (파일명에서 추출)
   fileName: string;       // 원본 PDF 파일명
   filePath: string;       // 원본 PDF 파일 경로
-  type: 'student' | 'teacher';  // 학생용/교사용
+  type: 'student' | 'teacher' | 'teacher_quick';  // 학생용/교사용/교사용(빠른정답)
   pairedWorkbookId?: string;     // 매칭된 반대 타입 문제집 ID
   analyzedAt: string;     // 분석 완료 시각 (ISO 문자열)
   totalQuestions: number;  // 총 문제 수
@@ -32,7 +32,8 @@ export interface Question {
   type: '객관식' | '주관식' | '미분류';
   imagePath: string;      // 크롭된 문제 이미지 절대 경로
   answerImagePath?: string; // 매칭된 답안 이미지 경로 (교사용에서)
-  textContent?: string;   // AI가 인식한 텍스트 (참고용)
+  answerText?: string;      // 매칭된 정답 텍스트 (빠른정답용)
+  textContent?: string;   // AI가 인식한 텍스트 (참고용/빠른정답 원본 텍스트)
   bbox: BoundingBox;      // 페이지 내 위치 (비율 좌표)
 }
 

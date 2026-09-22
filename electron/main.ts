@@ -467,6 +467,46 @@ ipcMain.handle('generate-odap-note', async (event, studentId: string, workbookId
   }
 });
 
+/** 화면을 PDF로 만들어 미리보기 */
+ipcMain.handle('print-preview', async (event, htmlString?: string) => {
+  try {
+    let targetWebContents = event.sender;
+    let hiddenWin: BrowserWindow | null = null;
+    
+    if (htmlString) {
+      hiddenWin = new BrowserWindow({
+        show: false,
+        webPreferences: { nodeIntegration: false, contextIsolation: true }
+      });
+      await hiddenWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlString)}`);
+      // 스타일/폰트 렌더링 대기
+      await new Promise(resolve => setTimeout(resolve, 500));
+      targetWebContents = hiddenWin.webContents;
+    } else {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win) return { success: false, error: '창을 찾을 수 없습니다.' };
+      targetWebContents = win.webContents;
+    }
+    
+    const pdfData = await targetWebContents.printToPDF({
+      printBackground: true,
+      pageSize: 'A4',
+      margins: { marginType: 'default' }
+    });
+    
+    if (hiddenWin) hiddenWin.close();
+    
+    const tempPath = path.join(app.getPath('temp'), `print_preview_${Date.now()}.pdf`);
+    fs.writeFileSync(tempPath, pdfData);
+    
+    await shell.openPath(tempPath);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Main] PDF 미리보기 실패:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 /** 즉시 프린트 */
 ipcMain.handle('print-odap-note', async (event, filePath: string) => {
   try {

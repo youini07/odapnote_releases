@@ -97,7 +97,7 @@ async function callGemini(ai: GoogleGenAI, contents: any[]) {
  * Gemini Pro 모델 호출 헬퍼 (레이아웃 분석 등 고정밀 작업용)
  */
 async function callGeminiPro(ai: GoogleGenAI, contents: any[]) {
-  const models = ['gemini-3.1-pro', 'gemini-2.5-pro', 'gemini-2.0-pro'];
+  const models = ['gemini-3.1-pro-preview', 'gemini-2.5-pro', 'gemini-2.0-pro'];
   let lastErr: any = null;
   for (const model of models) {
     try {
@@ -695,6 +695,83 @@ async function analyzeAndCropPage(
 }
 
 /**
+ * 빠른정답(텍스트 전용) 페이지 분석 함수
+ */
+async function analyzeQuickAnswerPage(
+  ai: GoogleGenAI,
+  pageImgPath: string,
+  pageCounter: number,
+  workbookId: string,
+  startNumber?: string
+): Promise<{ questions: Question[] }> {
+  const base64Img = fs.readFileSync(pageImgPath).toString('base64');
+  
+  let prompt = `
+이 이미지는 교사용 "빠른 정답" (단답형/객관식 정답만 빽빽하게 나열된 표 또는 목록 형태) 페이지입니다.
+당신의 임무는 이 이미지에 있는 모든 문제 번호와 그에 해당하는 정답 텍스트를 하나도 빠짐없이 순서대로 추출하는 것입니다.
+
+[추출 핵심 규칙]
+1. 이미지에 다단(column)이 있다면, 반드시 왼쪽 단부터 오른쪽 단 순서로 위에서 아래로 읽어나가세요.
+2. 문제 번호 뒤에 '번'이 있다면 제거하세요 (예: "0112번" -> "0112").
+3. 정답 텍스트는 보기 번호(예: "③", "②") 또는 주관식 텍스트(예: "240", "해설참조", "11") 형태입니다.
+4. 좌표(bbox)는 필요하지 않습니다.
+
+결과는 반드시 아래 JSON 형식에 맞춰 반환해 주세요:
+{
+  "questions": [
+    { "number": "0112", "answer": "②" },
+    { "number": "0113", "answer": "③" }
+  ]
+}
+마크다운 태그 없이 순수 JSON 텍스트만 출력해 주세요.
+`;
+
+  if (startNumber) {
+    prompt += `\n[힌트] 이 페이지의 첫 문제 번호는 '${startNumber}' 주변일 가능성이 높습니다.\n`;
+  }
+
+  // 빠른정답은 밀집도가 높으므로 항상 Pro 모델 사용
+  const response = await callGeminiPro(ai, [
+    prompt,
+    { inlineData: { data: base64Img, mimeType: 'image/png' } }
+  ]);
+
+  const responseText = response.text || '';
+  let cleanText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+  if (jsonMatch) cleanText = jsonMatch[0];
+  
+  let parsed: any;
+  try {
+    parsed = JSON.parse(cleanText);
+  } catch (e) {
+    console.error(`[QuickAnswer] JSON 파싱 에러 (p.${pageCounter}):`, e);
+    return { questions: [] };
+  }
+
+  const pageQuestions: Question[] = [];
+  if (parsed.questions && Array.isArray(parsed.questions)) {
+    for (const aq of parsed.questions) {
+      if (!aq.number || !aq.answer) continue;
+      pageQuestions.push({
+        id: `q_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        workbookId,
+        number: String(aq.number),
+        page: pageCounter,
+        type: '미분류',
+        imagePath: '', // 빠른정답은 크롭 이미지가 없음
+        answerText: String(aq.answer),
+        textContent: String(aq.answer),
+        bbox: { x: 0, y: 0, width: 0, height: 0 } // 사용하지 않음
+      });
+    }
+  }
+
+  return { questions: pageQuestions };
+}
+
+
+/**
  * PDF 사전 등록 (순차적 이미지 추출 및 크롭) - 개선 버전
  * 
  * 처리 흐름:
@@ -705,7 +782,7 @@ async function analyzeAndCropPage(
 export async function createPdfIndex(
   pdfPath: string,
   workbookId: string,
-  type: 'student' | 'teacher',
+  type: 'student' | 'teacher' | 'teacher_quick',
   onProgress: (msg: string, percent: number) => void,
   startNumber?: string,
   analyzeStartPage?: number,
@@ -718,7 +795,7 @@ export async function createPdfIndex(
   onProgress('PDF 문서를 분석하여 문제 색인 및 이미지 추출을 준비 중입니다...', 5);
   
   const ai = new GoogleGenAI({ apiKey: settings.geminiApiKey });
-  const typeLabel = type === 'student' ? '학생용 문제집' : '교사용 답안지';
+  const typeLabel = type === 'student' ? '학생용 문제집' : (type === 'teacher_quick' ? '교사용 빠른정답' : '교사용 답안지');
   
   const { pdf } = await import('pdf-to-img');
   const sharp = await getSharp();
@@ -787,11 +864,16 @@ export async function createPdfIndex(
             "[주의] 이전 분석에서 문제를 찾지 못했거나 오류가 발생했습니다. 엄격한 규칙을 완화하여 번호를 최대한 추출해 보세요." 
             : undefined;
             
-          const result = await analyzeAndCropPage(
-            ai, pageImgPath, pageCounter, pageWidth, pageHeight, workbookId, typeLabel, extraHints, startNumber, prevColumnLayout, !!settings.useProLayout, isProFallback
-          );
+          let result: any;
+          if (type === 'teacher_quick') {
+            result = await analyzeQuickAnswerPage(ai, pageImgPath, pageCounter, workbookId, startNumber);
+          } else {
+            result = await analyzeAndCropPage(
+              ai, pageImgPath, pageCounter, pageWidth, pageHeight, workbookId, typeLabel, extraHints, startNumber, prevColumnLayout, !!settings.useProLayout, isProFallback
+            );
+          }
           pageQuestions = result.questions;
-          pageColumnLayout = result.columnLayout;
+          pageColumnLayout = result.columnLayout || null;
           
           if (pageQuestions.length > 0) {
             break; 
@@ -917,17 +999,21 @@ export async function createPdfIndex(
 
       if (relevantMissing.length === 0) continue;
 
-      const extraHints = `
+      try {
+        let result;
+        if (type === 'teacher_quick') {
+          result = await analyzeQuickAnswerPage(ai, pageData.imgPath, retryPage, workbookId, startNumber);
+        } else {
+          const extraHints = `
 [주의] 이 페이지에서 다음 문제 번호가 누락된 것으로 보입니다: ${relevantMissing.join(', ')}
 이 번호들의 문제가 이 페이지에 있는지 특히 신중하게 확인해주세요.
 문제 번호가 작은 글씨, 볼드체, 원 안의 숫자, 색상이 다른 텍스트 등 다양한 형태로 되어 있을 수 있습니다.
 빈 공간이 아닌 실제 문제 내용이 있는 영역만 bbox로 잡아주세요.
 `;
-
-      try {
-        const result = await analyzeAndCropPage(
-          ai, pageData.imgPath, retryPage, pageData.width, pageData.height, workbookId, typeLabel, extraHints, startNumber, prevColumnLayout, !!settings.useProLayout, !!settings.useProLayout // 재분석 시 Pro 사용 켜져있으면 Pro 전체 분석으로 시도
-        );
+          result = await analyzeAndCropPage(
+            ai, pageData.imgPath, retryPage, pageData.width, pageData.height, workbookId, typeLabel, extraHints, startNumber, prevColumnLayout, !!settings.useProLayout, !!settings.useProLayout // 재분석 시 Pro 사용 켜져있으면 Pro 전체 분석으로 시도
+          );
+        }
         const retryQuestions = result.questions;
 
         for (const q of retryQuestions) {

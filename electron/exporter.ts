@@ -208,7 +208,18 @@ function drawQuestionGrid(
       ? (q.answerImagePath || q.imagePath) 
       : q.imagePath;
 
-    if (imagePath && fs.existsSync(imagePath)) {
+    if (isAnswerSheet && q.answerText) {
+      // 빠른정답 텍스트 렌더링
+      doc.fillColor(COLOR_BLACK).fontSize(14);
+      
+      // 문제 번호
+      doc.fillColor(COLOR_QUESTION_NUMBER)
+         .text(`${q.number}`, cellX + cellPadding, imgY + 10, { continued: true });
+         
+      // 정답 텍스트
+      doc.fillColor(COLOR_BLACK)
+         .text(`   ${q.answerText}`, { width: imgAreaWidth - 30 });
+    } else if (imagePath && fs.existsSync(imagePath)) {
       try {
         // 이미지를 셀 크기에 맞춰 배치
         doc.image(imagePath, cellX + cellPadding, imgY, {

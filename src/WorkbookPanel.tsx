@@ -48,7 +48,8 @@ function PageSearchInput({ onSearch }: { onSearch: (page: number) => void }) {
 export default function WorkbookPanel() {
   const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
   const [analyzingJobs, setAnalyzingJobs] = useState<Record<string, { message: string, percent: number }>>({});
-  const [selectedType, setSelectedType] = useState<'student' | 'teacher'>('student');
+  const [selectedType, setSelectedType] = useState<'student' | 'teacher' | 'teacher_quick'>('student');
+  const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
   const [analyzeStartPage, setAnalyzeStartPage] = useState('');
   const [analyzeEndPage, setAnalyzeEndPage] = useState('');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -158,7 +159,7 @@ export default function WorkbookPanel() {
   };
 
   // 이어서 분석 (재개)
-  const handleResumeAnalysis = async (workbookId: string, filePath: string, type: 'student' | 'teacher') => {
+  const handleResumeAnalysis = async (workbookId: string, filePath: string, type: 'student' | 'teacher' | 'teacher_quick') => {
     setErrorMsg(null);
     
     // UI 즉각 반영을 위해 빈 상태 생성
@@ -270,7 +271,7 @@ export default function WorkbookPanel() {
   };
 
   const studentWorkbooks = workbooks.filter(w => w.type === 'student');
-  const teacherWorkbooks = workbooks.filter(w => w.type === 'teacher');
+  const teacherWorkbooks = workbooks.filter(w => w.type === 'teacher' || w.type === 'teacher_quick');
 
   const renderWorkbooksByFolder = (workbooksToRender: Workbook[], title: string, icon: React.ReactNode) => {
     const groups: Record<string, Workbook[]> = {};
@@ -360,17 +361,57 @@ export default function WorkbookPanel() {
               >
                 📘 학생용 (문제)
               </button>
-              <button
-                onClick={() => setSelectedType('teacher')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                  selectedType === 'teacher'
-                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                    : 'bg-slate-50 text-slate-500 border border-slate-200 hover:text-slate-800'
-                }`}
-              >
-                📙 교사용 (답안)
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    if (selectedType !== 'teacher' && selectedType !== 'teacher_quick') {
+                      setSelectedType('teacher'); // 기본값으로 먼저 선택
+                      setShowTeacherDropdown(true);
+                    } else {
+                      setShowTeacherDropdown(!showTeacherDropdown);
+                    }
+                  }}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap flex items-center gap-1 ${
+                    selectedType === 'teacher' || selectedType === 'teacher_quick'
+                      ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30'
+                      : 'bg-slate-50 text-slate-500 border border-slate-200 hover:text-slate-800'
+                  }`}
+                >
+                  {selectedType === 'teacher_quick' ? '⚡ 교사용 (빠른정답)' : '📝 교사용 (풀이형)'}
+                  <ChevronDown size={14} className={`transition-transform ${showTeacherDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showTeacherDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-20 py-1 overflow-hidden">
+                    <button 
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${selectedType === 'teacher' ? 'bg-orange-50/50 text-orange-600 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                      onClick={() => { 
+                        setSelectedType('teacher'); 
+                        setShowTeacherDropdown(false); 
+                      }}
+                    >
+                      📝 교사용 (풀이형)
+                    </button>
+                    <button 
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${selectedType === 'teacher_quick' ? 'bg-orange-50/50 text-orange-600 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                      onClick={() => { 
+                        setSelectedType('teacher_quick'); 
+                        setShowTeacherDropdown(false); 
+                      }}
+                    >
+                      ⚡ 교사용 (빠른정답)
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+            {/* 드롭다운 바깥 영역 클릭 시 닫히도록 하는 투명 오버레이 */}
+            {showTeacherDropdown && (
+              <div 
+                className="fixed inset-0 z-10"
+                onClick={() => setShowTeacherDropdown(false)}
+              />
+            )}
           </div>
 
 
@@ -856,7 +897,11 @@ function WorkbookCard({
                       <span className="text-[9px] text-slate-500">p.{q.page}</span>
                     </div>
                   </div>
-                  {questionImages[q.id] ? (
+                  {workbook.type === 'teacher_quick' ? (
+                    <div className="w-full h-20 bg-slate-100 rounded flex items-center justify-center p-2 text-center overflow-auto">
+                      <span className="text-sm font-semibold text-slate-800 break-all">{q.answerText}</span>
+                    </div>
+                  ) : questionImages[q.id] ? (
                     <img
                       src={questionImages[q.id]}
                       alt={`문제 ${q.number}`}

@@ -145,10 +145,10 @@ export default function App() {
   const activeTabData = tabs.find(t => t.id === activeTab);
 
   return (
-    <div className="h-screen flex bg-slate-200 text-slate-800 font-sans overflow-hidden">
+    <div className="h-screen flex bg-slate-200 text-slate-800 font-sans overflow-hidden print:h-auto print:overflow-visible print:bg-white print:block">
       
       {/* 둥근 플로팅 사이드바 */}
-      <aside className="w-64 shrink-0 bg-slate-100 m-4 mr-2 rounded-2xl shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] border border-slate-300 flex flex-col overflow-hidden">
+      <aside className="w-64 shrink-0 bg-slate-100 m-4 mr-2 rounded-2xl shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] border border-slate-300 flex flex-col overflow-hidden print-hide">
         
         {/* 상단 로고 영역 */}
         <div className="p-6 pb-2 shrink-0 flex items-center justify-center">
@@ -232,9 +232,9 @@ export default function App() {
       </aside>
 
       {/* 메인 컨텐츠 영역 */}
-      <main className="flex-1 m-4 ml-2 bg-transparent flex flex-col overflow-hidden relative">
+      <main className="flex-1 m-4 ml-2 bg-transparent flex flex-col overflow-hidden relative print:m-0 print:overflow-visible print:block">
         {/* 상단 헤더 바 (네비게이션/검색 등 위치) */}
-        <header className="h-14 shrink-0 bg-slate-100 rounded-2xl shadow-sm border border-slate-300 flex items-center justify-between px-6 mb-4">
+        <header className="h-14 shrink-0 bg-slate-100 rounded-2xl shadow-sm border border-slate-300 flex items-center justify-between px-6 mb-4 print-hide">
           <div className="flex items-center gap-2 text-sm">
             <span className="text-slate-400 font-medium">{settings?.academyName || '더MP수학전문학원'}</span>
             <span className="text-slate-300">/</span>
@@ -243,7 +243,7 @@ export default function App() {
         </header>
 
         {/* 뷰 포트 */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar rounded-2xl bg-slate-100 shadow-sm border border-slate-300">
+        <div className="flex-1 overflow-y-auto custom-scrollbar rounded-2xl bg-slate-100 shadow-sm border border-slate-300 print:overflow-visible print:border-none print:shadow-none print:bg-transparent print:block">
           {activeTab === 'dashboard' && <PlaceholderPanel title="대시보드" description="전체 현황을 한눈에 파악하세요." />}
           {activeTab === 'students' && <StudentPanel />}
           {activeTab === 'classes' && <PlaceholderPanel title="반·과정" description="수업 및 학생 소속을 관리하세요." />}

@@ -62,6 +62,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportFile: (odapNoteId: string, format: 'pdf' | 'hwpx') => 
     ipcRenderer.invoke('export-file', odapNoteId, format),
   
+  /** 화면 PDF 미리보기 */
+  printPreview: (htmlString?: string) => ipcRenderer.invoke('print-preview', htmlString),
+  
   /** 즉시 프린트 */
   printOdapNote: (filePath: string) => ipcRenderer.invoke('print-odap-note', filePath),
   
