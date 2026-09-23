@@ -58,7 +58,7 @@ export default function WorkbookPanel() {
   const [questionImages, setQuestionImages] = useState<Record<string, string>>({});
   const [pairingMode, setPairingMode] = useState<string | null>(null); // 매칭할 문제집 ID
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [uploadFolderName, setUploadFolderName] = useState<string>(''); // 업로드 시 폴더명 지정
+
 
   // 데이터 로딩
   const loadWorkbooks = useCallback(async () => {
@@ -116,21 +116,7 @@ export default function WorkbookPanel() {
       const result = await window.electronAPI.analyzePdf(fileToAnalyze, selectedType, undefined, startP, endP);
       
       if (result.success && result.workbook) {
-        // 방금 생성된 문제집의 폴더명 업데이트 (DB 저장을 위해)
-        if (uploadFolderName.trim()) {
-           const updatedWb = { ...result.workbook, folderName: uploadFolderName.trim() };
-           // We need a way to save updated workbook. We don't have a direct saveWorkbook API exposed to renderer.
-           // However, analyzePdf might save it. Wait, if we can't update it directly, we might need to add it to API.
-           // Actually, since we don't have `updateWorkbook` API, we should expose it or pass folderName to analyzePdf.
-           // Let's pass folderName to analyzePdf if possible, or add updateWorkbook API. 
-           // BUT changing analyzePdf signature is hard because it's used in main process.
-           // Let's add `updateWorkbook` API to preload/main later, or just use a new API endpoint.
-           // WAIT! The user didn't ask to set folder DURING upload specifically, they just said "분류완료된 문제집을 폴더를 만들어서 문제집을 분류 보관할수 있게해줘."
-           // I'll add `updateWorkbook` to window.electronAPI in a moment. For now, let's call `window.electronAPI.updateWorkbook(workbookId, {folderName})`.
-           if ((window.electronAPI as any).updateWorkbook) {
-               await (window.electronAPI as any).updateWorkbook(result.workbook.id, { folderName: uploadFolderName.trim() });
-           }
-        }
+
         await loadWorkbooks();
         setAnalyzingJobs(prev => {
           const next = { ...prev };
@@ -441,19 +427,7 @@ export default function WorkbookPanel() {
               </div>
             </div>
           </div>
-          {/* 폴더명 (선택) */}
-          <div className="flex items-end gap-2">
-            <div>
-              <label className="block text-xs text-slate-500 mb-1.5 font-medium">분류 폴더명 (선택)</label>
-              <input
-                type="text"
-                value={uploadFolderName}
-                onChange={(e) => setUploadFolderName(e.target.value)}
-                placeholder="예: 고1 수학"
-                className="px-3 py-2 text-sm bg-slate-50 text-slate-700 border border-slate-200 rounded-lg placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 w-32"
-              />
-            </div>
-          </div>
+
 
           <div className="flex gap-2 items-end">
             {/* 파일 첨부 버튼 */}

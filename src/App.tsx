@@ -21,7 +21,7 @@ import PlaceholderPanel from './PlaceholderPanel';
 import LibraryPanel from './LibraryPanel';
 
 // 탭 정의
-type TabId = 'dashboard' | 'students' | 'classes' | 'workbooks' | 'library' | 'materials' | 'school_exams' | 'csat_exams' | 'settings' | 'account';
+type TabId = 'dashboard' | 'students' | 'classes' | 'ai_analysis' | 'workbooks' | 'library' | 'materials' | 'school_exams' | 'csat_exams' | 'settings' | 'account';
 
 interface Tab {
   id: TabId;
@@ -34,6 +34,7 @@ const baseTabs: Tab[] = [
   { id: 'dashboard', label: '대시보드', icon: <Home size={18} />, description: '전체 현황 요약' },
   { id: 'students', label: '학생', icon: <Users size={18} />, description: '학생 등록 및 기록 관리' },
   { id: 'classes', label: '반·과정', icon: <Layers size={18} />, description: '반별 수업 구조' },
+  { id: 'ai_analysis', label: '문제집 AI 분석', icon: <FileCheck size={18} />, description: '문제집 PDF 자동 분석' },
   { id: 'workbooks', label: '오답노트 작업', icon: <FileCheck size={18} />, description: '문제집 및 오답노트 생성' },
   { id: 'library', label: '라이브러리', icon: <Library size={18} />, description: '교재 원본 및 분석 관리' },
   { id: 'materials', label: '자료·시험지', icon: <Files size={18} />, description: '학원 자체 시험지' },
@@ -142,7 +143,20 @@ export default function App() {
     });
   }
 
-  const activeTabData = tabs.find(t => t.id === activeTab);
+  const filteredTabs = tabs.filter(t => {
+    if (t.id === 'account' && (userRole !== 'superadmin' && userRole !== 'admin')) return false;
+    if (t.id === 'settings' && (userRole !== 'superadmin' && userRole !== 'admin')) return false;
+    if (t.id === 'school_exams' && !settings?.showTabSchool) return false;
+    if (t.id === 'csat_exams' && !settings?.showTabSuneung) return false;
+    if (t.id === 'materials' && !settings?.showTabMaterial) return false;
+    
+    // AI 분석 탭은 권한이 없으면 숨김
+    if (t.id === 'ai_analysis' && (userRole !== 'superadmin' && userRole !== 'admin' && userRole !== 'ai_user')) return false;
+    
+    return true;
+  });
+
+  const activeTabData = filteredTabs.find(t => t.id === activeTab);
 
   return (
     <div className="h-screen flex bg-slate-200 text-slate-800 font-sans overflow-hidden print:h-auto print:overflow-visible print:bg-white print:block">
@@ -169,10 +183,7 @@ export default function App() {
 
         {/* 탭 리스트 */}
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1 custom-scrollbar">
-          {tabs.map(tab => {
-            if (tab.id === 'csat_exams' && settings?.showTabSuneung === false) return null;
-            if (tab.id === 'school_exams' && settings?.showTabSchool === false) return null;
-            if (tab.id === 'materials' && settings?.showTabMaterial === false) return null;
+          {filteredTabs.map(tab => {
 
             return (
             <button
@@ -236,7 +247,7 @@ export default function App() {
         {/* 상단 헤더 바 (네비게이션/검색 등 위치) */}
         <header className="h-14 shrink-0 bg-slate-100 rounded-2xl shadow-sm border border-slate-300 flex items-center justify-between px-6 mb-4 print-hide">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-400 font-medium">{settings?.academyName || '더MP수학전문학원'}</span>
+            <span className="text-slate-400 font-medium">{settings?.academyName || '전과목 개인별 학습 솔루션'}</span>
             <span className="text-slate-300">/</span>
             <span className="text-slate-800 font-bold">{activeTabData?.label}</span>
           </div>
@@ -247,10 +258,16 @@ export default function App() {
           {activeTab === 'dashboard' && <PlaceholderPanel title="대시보드" description="전체 현황을 한눈에 파악하세요." />}
           {activeTab === 'students' && <StudentPanel />}
           {activeTab === 'classes' && <PlaceholderPanel title="반·과정" description="수업 및 학생 소속을 관리하세요." />}
-          {/* workbooks 탭은 예전의 WorkbookPanel과 OdapNotePanel을 묶거나 일단 기존 WorkbookPanel 역할을 줌 */}
+          
+          {activeTab === 'ai_analysis' && (
+            <div className="flex flex-col relative h-full">
+              <WorkbookLockGuard isUnlocked={isWorkbookUnlocked} onUnlock={() => setIsWorkbookUnlocked(true)} />
+            </div>
+          )}
+          
           {activeTab === 'workbooks' && (
-            <div>
-              <OdapNoteCombinedView isUnlocked={isWorkbookUnlocked} onUnlock={() => setIsWorkbookUnlocked(true)} />
+            <div className="flex flex-col relative h-full">
+              <OdapNotePanel />
             </div>
           )}
           {activeTab === 'library' && <LibraryPanel />}
@@ -263,36 +280,6 @@ export default function App() {
       </main>
 
       <UpdaterModal />
-    </div>
-  );
-}
-
-// 오답노트 탭 하위에 문제집 관리 / 오답노트 생성을 스위칭할 수 있는 임시 컴포넌트
-function OdapNoteCombinedView({ isUnlocked, onUnlock }: { isUnlocked: boolean, onUnlock: () => void }) {
-  const [subTab, setSubTab] = useState<'manage'|'create'>('manage');
-  
-  return (
-    <div className="flex flex-col relative">
-      <div className="sticky top-0 bg-slate-100 z-10 p-4 border-b border-slate-300 flex items-center gap-4 rounded-t-2xl">
-        <button 
-          onClick={() => setSubTab('manage')}
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${subTab === 'manage' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
-        >
-          1단계: 문제집 등록 및 분석
-        </button>
-        <button 
-          onClick={() => setSubTab('create')}
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${subTab === 'create' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
-        >
-          2단계: 오답노트 생성
-        </button>
-      </div>
-      <div>
-        {subTab === 'manage' && (
-          <WorkbookLockGuard isUnlocked={isUnlocked} onUnlock={onUnlock} />
-        )}
-        {subTab === 'create' && <OdapNotePanel />}
-      </div>
     </div>
   );
 }

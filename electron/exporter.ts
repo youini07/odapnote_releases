@@ -49,7 +49,7 @@ export async function generatePdf(
         margins: { top: marginPt, bottom: marginPt, left: marginPt, right: marginPt },
         info: {
           Title: `${workbookName}_${studentName}${isAnswerSheet ? '_답안지' : ''}`,
-          Author: '수학전문학원 오답노트',
+          Author: 'ODAPNOTE 전과목 개인별 학습 솔루션',
         }
       });
 
@@ -173,7 +173,7 @@ function drawQuestionGrid(
   const cellWidth = contentWidth / cols;
   const cellHeight = contentHeight / rows;
   const cellPadding = 5;
-  const pageLabelHeight = 18;
+  const pageLabelHeight = 0;
 
   for (let i = 0; i < questions.length && i < questionsPerPage; i++) {
     const q = questions[i];
@@ -185,17 +185,6 @@ function drawQuestionGrid(
     // 셀 테두리
     doc.rect(cellX, cellY, cellWidth, cellHeight)
        .stroke(COLOR_BLACK);
-
-    // Page 라벨
-    doc.rect(cellX, cellY, cellWidth, pageLabelHeight)
-       .fill(COLOR_HEADER_BG)
-       .stroke(COLOR_BLACK);
-
-    doc.fillColor(COLOR_BLACK)
-       .fontSize(9)
-       .text(`Page.${q.page}`, cellX + 5, cellY + 4, {
-         width: cellWidth - 10,
-       });
 
     // 문제 이미지 영역
     const imgY = cellY + pageLabelHeight + cellPadding;

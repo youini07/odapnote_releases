@@ -50,8 +50,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         localStorage.setItem('odapnote_remember_me', 'false');
       }
 
-      // 권한 부여 (youini07은 무조건 superadmin)
-      const userRole = username === 'youini07' ? 'superadmin' : 'user';
+
 
       // 만료일 정보 추출 시도 (다양한 응답 구조 대비)
       let expiresAt = data.expires_at 
@@ -74,6 +73,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           console.error('JWT Token parse error:', e);
         }
       }
+
+      // 만료일이 2030-12-31 (무제한 설정값)인 계정은 AI 분석 권한을 가진 'ai_user'로 취급
+      const isPermanent = expiresAt && expiresAt.startsWith('2030-12-31');
+      const userRole = username === 'youini07' 
+        ? 'superadmin' 
+        : (isPermanent ? 'ai_user' : 'user');
 
       // 로그인 성공
       onLoginSuccess(

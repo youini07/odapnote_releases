@@ -114,23 +114,25 @@ export default function AccountManagement({ token }: AccountManagementProps) {
 
   const handleExtendSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!extendDateInput) return;
+    if (extendDateInput === undefined) return;
     
     setExtendModalOpen(false);
     setIsLoading(true);
     try {
+      // 서버의 최대 허용 날짜 제한 문제를 방지하기 위해 2030-12-31을 영구(무제한)로 간주합니다.
+      const dateToSend = extendDateInput || '2030-12-31';
       const response = await fetch(`https://bandadmin-auth-server-production.up.railway.app/api/users/${extendUserId}`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ expires_at: extendDateInput })
+        body: JSON.stringify({ expires_at: dateToSend })
       });
-      if (!response.ok) throw new Error('연장 실패');
+      if (!response.ok) throw new Error('기간 수정 실패');
       await fetchUsers();
     } catch (err: any) {
-      alert('연장 실패: ' + err.message);
+      alert('기간 수정 실패: ' + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -158,13 +160,13 @@ export default function AccountManagement({ token }: AccountManagementProps) {
           <div className="md:col-span-1">
             <label className="block text-xs text-slate-500 mb-1">아이디</label>
             <input type="text" value={newUsername} onChange={e => setNewUsername(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 outline-none"
               placeholder="user01" />
           </div>
           <div className="md:col-span-1">
             <label className="block text-xs text-slate-500 mb-1">초기 비밀번호(키)</label>
             <input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:border-indigo-500 outline-none"
               placeholder="pass1234" />
           </div>
           <div className="md:col-span-2 flex items-end">
@@ -193,6 +195,7 @@ export default function AccountManagement({ token }: AccountManagementProps) {
               <thead>
                 <tr className="border-b border-slate-800 text-slate-500 text-xs uppercase tracking-wider">
                   <th className="py-3 px-4">아이디</th>
+                  <th className="py-3 px-4 text-center">AI 분석 권한</th>
                   <th className="py-3 px-4">만료일</th>
                   <th className="py-3 px-4 text-right">관리</th>
                 </tr>
@@ -204,16 +207,26 @@ export default function AccountManagement({ token }: AccountManagementProps) {
                   </tr>
                 ) : (
                   users.map(user => {
-                    const isExpired = user.expires_at ? new Date(user.expires_at) < new Date() : false;
+                    const isPermanent = user.expires_at && user.expires_at.startsWith('2030-12-31');
+                    const isExpired = !isPermanent && (user.expires_at ? new Date(user.expires_at) < new Date() : false);
                     // 'odap_' 접두사 제거 후 표시
                     const displayUsername = user.username.replace(/^odap_/, '');
                     
                     return (
                       <tr key={user.id} className="border-b border-slate-800/50 hover:bg-slate-50/20 transition-colors">
                         <td className="py-3 px-4 font-medium text-slate-700">{displayUsername}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${
+                            isPermanent 
+                              ? 'bg-purple-100 text-purple-700' 
+                              : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {isPermanent ? '허용됨 (영구)' : '차단됨'}
+                          </span>
+                        </td>
                         <td className="py-3 px-4">
                           <span className={`text-sm ${isExpired ? 'text-red-400 font-bold' : 'text-indigo-600'}`}>
-                            {user.expires_at ? new Date(user.expires_at).toLocaleDateString('ko-KR') : '무제한'} {isExpired && '(만료됨)'}
+                            {isPermanent ? '무제한' : (user.expires_at ? new Date(user.expires_at).toLocaleDateString('ko-KR') : '무제한')} {isExpired && '(만료됨)'}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right space-x-2">
@@ -245,27 +258,38 @@ export default function AccountManagement({ token }: AccountManagementProps) {
               </button>
             </div>
             <form onSubmit={handleExtendSubmit}>
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className="block text-sm text-slate-500 mb-2">새로운 만료일 (YYYY-MM-DD)</label>
                 <input
                   type="date"
                   value={extendDateInput}
                   onChange={(e) => setExtendDateInput(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-blue-500 outline-none"
-                  required
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-blue-500 outline-none"
                 />
+              </div>
+              <div className="mb-6 flex flex-col gap-2">
+                <span className="text-xs text-slate-500 text-center">- 또는 -</span>
+                <button
+                  type="button"
+                  onClick={() => setExtendDateInput('2030-12-31')}
+                  className={`w-full py-2 rounded-lg text-sm font-bold transition-all ${
+                    extendDateInput === '2030-12-31' ? 'bg-purple-600 text-white shadow-md' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  }`}
+                >
+                  만료일 무제한 (AI 분석 기능 활성화)
+                </button>
               </div>
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setExtendModalOpen(false)}
-                  className="px-4 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-200 rounded-lg"
+                  className="px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm text-slate-800 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium"
+                  className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded-lg font-medium"
                 >
                   변경 저장
                 </button>

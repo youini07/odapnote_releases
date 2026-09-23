@@ -296,7 +296,7 @@ export function getAppSettings(): AppSettings {
     geminiApiKey: '',
     paperSize: 'A4',
     academyLogoPath: '',
-    academyName: '더MP수학전문학원',
+    academyName: '전과목 개인별 학습 솔루션',
     questionsPerPage: 4,
     dataPath: getDataDir(),
     showTabSuneung: true,

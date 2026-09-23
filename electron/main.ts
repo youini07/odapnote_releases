@@ -476,7 +476,7 @@ ipcMain.handle('print-preview', async (event, htmlString?: string) => {
     if (htmlString) {
       hiddenWin = new BrowserWindow({
         show: false,
-        webPreferences: { nodeIntegration: false, contextIsolation: true }
+        webPreferences: { nodeIntegration: false, contextIsolation: true, webSecurity: false }
       });
       await hiddenWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlString)}`);
       // 스타일/폰트 렌더링 대기

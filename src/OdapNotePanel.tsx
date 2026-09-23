@@ -453,9 +453,6 @@ export default function OdapNotePanel() {
                   <div className="grid grid-cols-2 gap-0.5">
                     {pageQuestions.map((q) => (
                       <div key={q.id} className="border border-gray-300 p-2 min-h-[120px]">
-                        <div className="text-[9px] text-gray-500 font-medium mb-1 border-b border-gray-200 pb-0.5">
-                          Page.{q.page}
-                        </div>
                         {previewImages[q.id] ? (
                           <img
                             src={previewImages[q.id]}

@@ -443,7 +443,7 @@ export default function SettingsPanel({ token, onSettingsChange }: SettingsPanel
                     type="text"
                     value={settings.academyName || ''}
                     onChange={(e) => setSettings({ ...settings, academyName: e.target.value })}
-                    placeholder="예: 더MP수학전문학원"
+                    placeholder="예: 전과목 개인별 학습 솔루션"
                     className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
                   />
                 </div>
