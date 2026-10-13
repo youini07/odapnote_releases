@@ -145,7 +145,6 @@ export default function App() {
 
   const filteredTabs = tabs.filter(t => {
     if (t.id === 'account' && (userRole !== 'superadmin' && userRole !== 'admin')) return false;
-    if (t.id === 'settings' && (userRole !== 'superadmin' && userRole !== 'admin')) return false;
     if (t.id === 'school_exams' && !settings?.showTabSchool) return false;
     if (t.id === 'csat_exams' && !settings?.showTabSuneung) return false;
     if (t.id === 'materials' && !settings?.showTabMaterial) return false;
@@ -175,7 +174,7 @@ export default function App() {
                 ODAPNOTE
               </h1>
               <p className="text-[10px] text-indigo-500 font-semibold tracking-wider uppercase">
-                v1.0.0
+                v1.2.7
               </p>
             </div>
           </div>
